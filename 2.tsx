@@ -37,37 +37,37 @@ function PageContent() {
                     JSON.stringify(selectedOptions),
                     { headers: { "Content-Type": "application/json" } }
                 );
-                
+
                 const data = response.data;
-                const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
-                const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
-                
+                const longRunFiltered = data["Cyclicality: Long run"]?.rows || [];
+                const sdFiltered = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+
                 const segregateByMetric = (data: any[], metric: string) => {
                     return data
-                        .filter((row: any) => row.METRIC === metric)
+                        .filter((row) => row.METRIC === metric)
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
                         .slice(-5) // Get latest 5 records
-                        .map((row: any) => ({
+                        .map((row) => ({
                             month: row.REPORT_DATE,
                             desktop: row.VALUE,
                             laptop: row.VALUE * 0.8
                         }));
                 };
-                
+
                 setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
                 setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
-                
+
                 const formatTableData = (data: any[], metric: string) => {
                     return data
-                        .filter((row: any) => row.METRIC === metric)
+                        .filter((row) => row.METRIC === metric)
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-                        .map((row: any) => ({
+                        .map((row) => ({
                             quarter: row.REPORT_DATE,
                             "Model Cyclicality Long Run": row.MODEL,
                             "Final Cyclicality Long Run": row.VALUE
                         }));
                 };
-                
+
                 setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
                 setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
             } catch (err) {
@@ -93,6 +93,7 @@ function PageContent() {
             <ThirdNav />
 
             <div className="flex flex-wrap w-full gap-4 mt-4">
+                {/* Cyclicality: Long run */}
                 <div className="w-full sm:w-[49%] max-w-full">
                     <LineChartComponent
                         title="Cyclicality: Long run"
@@ -101,6 +102,7 @@ function PageContent() {
                         config={chartConfig.longRun}
                     />
                 </div>
+                {/* Cyclicality: SD (Standard Deviation) */}
                 <div className="w-full sm:w-[49%] max-w-full">
                     <LineChartComponent
                         title="Cyclicality: SD (Standard Deviation)"
@@ -111,6 +113,7 @@ function PageContent() {
                 </div>
             </div>
 
+            {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
                     <TableComponent data={tableLongRunData} />
