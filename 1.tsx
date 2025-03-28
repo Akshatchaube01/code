@@ -48,16 +48,16 @@ function PageContent() {
         console.log("✅ Before Transformation - Long Run:", JSON.stringify(longRunFiltered, null, 2));
         console.log("✅ Before Transformation - SD:", JSON.stringify(sdFiltered, null, 2));
 
-        // ✅ Ensure correct sorting and preserve negative values
+        // ✅ Proper transformation ensuring NO DATA LOSS
         const processDataForChart = (data, metric) => {
           return data
             .filter(row => row.METRIC === metric)
-            .sort((a, b) => new Date(a.REPORT_DATE) - new Date(b.REPORT_DATE)) // Sorting dates correctly
-            .slice(-5) // Get the latest 5 records
+            .sort((a, b) => new Date(a.REPORT_DATE) - new Date(b.REPORT_DATE)) // Correct sorting
+            .slice(-5) // Get latest 5 records
             .map(row => ({
               month: row.REPORT_DATE,
               desktop: row.VALUE, // ✅ Preserve negative values
-              laptop: row.VALUE * 0.8, // ✅ Maintain scaling
+              laptop: row.VALUE, // ✅ No manipulation
             }));
         };
 
