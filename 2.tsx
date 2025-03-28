@@ -1,10 +1,12 @@
+"use client";
 
+import axios from "axios";
 import React, { useState, useEffect } from "react";
 import NavigationMenuDemo from "@/components/appx/navigationBar";
-import { TabsDemo } from "@/components/tabs/page";
+import TabsDemo from "@/components/appx/tabs";
 import { LineChartComponent } from "@/components/appx/lineChart_cyclicality_frame";
 import ThirdNav from "@/components/appx/thirdNavBar_frame";
-import { SelectedOptionsProvider, useSelectedOptions } from "@/context/SelectedOptionsContext";
+import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/Sele";
 import TableComponent from "@/components/appx/table_cyclicality_frame";
 
 export default function Page() {
@@ -18,72 +20,53 @@ export default function Page() {
 function PageContent() {
   const { selectedOptions } = useSelectedOptions();
   const [jsonData, setJsonData] = useState<any>(null);
-  const [longRunData, setLongRunData] = useState<any[]>([]);
-  const [sdData, setSdData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
   const [tableData, setTableData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch JSON data from public folder
   useEffect(() => {
-    fetch("/cyclicality_data.json")
-      .then((res) => res.json())
-      .then((data) => setJsonData(data))
-      .catch((error) => console.error("Error Loading JSON:", error));
-  }, []);
+    const fetchData = async () => {
+      if (!selectedOptions) return;
 
-  // Filter and format data when jsonData or selectedOptions change
-  useEffect(() => {
-    if (!jsonData) return;
+      setLoading(true);
+      setError(null);
 
-    const filterData = (data: any) =>
-      data.rows.filter((row: any) => {
-        return (
-          (!selectedOptions.view || row.VIEW === selectedOptions.view) &&
-          (!selectedOptions.dateRange || row.REPORT_DATE === selectedOptions.dateRange) &&
-          (!selectedOptions.region || row.REGION === selectedOptions.region) &&
-          (!selectedOptions.country || row.COUNTRY === selectedOptions.country) &&
-          (!selectedOptions.modelName || row.MODEL === selectedOptions.modelName) &&
-          (!selectedOptions.segment || row.SEGMENT === selectedOptions.segment) &&
-          (!selectedOptions.scope || row.KEY.includes(selectedOptions.scope))
+      try {
+        const response = await axios.post(
+          "http://127.0.0.1:8000/cyclicality",
+          JSON.stringify(selectedOptions),
+          { headers: { "Content-Type": "application/json" } }
         );
-      });
 
-    // Process Cyclicality: Long Run
-    const longRunFiltered = filterData(jsonData["Cyclicality: Long run"]);
+        setJsonData(response.data);
+        console.log(response.data);
 
-    // Process Cyclicality: SD (Standard Deviation)
-    const sdFiltered = filterData(jsonData["Cyclicality: SD (Standard Deviation)"]);
+        // Transform JSON data to match chartData structure
+        const transformedData = response.data.Cyclicality["Long run"].rows.map((row) => ({
+          month: row["REPORT DATE"],
+          longRun: row["VALUE"], // Long run value
+          standardDeviation:
+            response.data.Cyclicality["SD (Standard Deviation)"].rows.find(
+              (sdRow) => sdRow["REPORT DATE"] === row["REPORT DATE"]
+            )?.["VALUE"] || 0, // SD value, default to 0 if not found
+        }));
 
-    // Function to get only the latest 5 dates
-    const getLatestFiveDates = (data: any) => {
-      const sortedData = [...data].sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1));
-      return sortedData.slice(-5); // Get the last 5 entries
+        setChartData(transformedData);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Get latest 5 dates for both datasets
-    const longRunLatest = getLatestFiveDates(longRunFiltered);
-    const sdLatest = getLatestFiveDates(sdFiltered);
-
-    // Format for charts
-    const longRunChartData = longRunLatest.map((row: any) => ({
-      month: row.REPORT_DATE,
-      desktop: row.VALUE,
-      laptop: row.VALUE * 0.8,
-    }));
-
-    const sdChartData = sdLatest.map((row: any) => ({
-      month: row.REPORT_DATE,
-      desktop: row.VALUE,
-      laptop: row.VALUE * 0.8,
-    }));
-
-    setLongRunData(longRunChartData);
-    setSdData(sdChartData);
-    setTableData([...longRunFiltered, ...sdFiltered]);
-  }, [jsonData, selectedOptions]);
+    fetchData();
+  }, [selectedOptions]);
 
   const chartConfig = {
-    desktop: { label: "Desktop", color: "rgb(12,74,110)" },
-    laptop: { label: "Laptop", color: "red" },
+    longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
+    standardDeviation: { label: "SD (Standard Deviation)", color: "red" },
   };
 
   return (
@@ -93,22 +76,22 @@ function PageContent() {
       <ThirdNav />
 
       <div className="flex flex-wrap w-full gap-4 mt-4">
-        {/* First chart - Cyclicality: Long run */}
+        {/* Cyclicality: Long run */}
         <div className="w-full sm:w-[49%] max-w-full">
           <LineChartComponent
-            title="Cyclicality: Long run"
             description="Chart for Cyclicality Long Run"
-            data={longRunData}
+            title="Cyclicality: Long run"
+            data={chartData}
             config={chartConfig}
           />
         </div>
 
-        {/* Second chart - Cyclicality: SD (Standard Deviation) */}
+        {/* Cyclicality: SD (Standard Deviation) */}
         <div className="w-full sm:w-[49%] max-w-full">
           <LineChartComponent
             title="Cyclicality: SD (Standard Deviation)"
             description="Chart for Cyclicality SD"
-            data={sdData}
+            data={chartData}
             config={chartConfig}
           />
         </div>
@@ -119,7 +102,6 @@ function PageContent() {
         <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
           <TableComponent data={tableData} />
         </div>
-
         <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
           <TableComponent data={tableData} />
         </div>
