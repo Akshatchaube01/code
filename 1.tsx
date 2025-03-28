@@ -1,116 +1,66 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import NavigationMenuDemo from "@/components/appx/navigationBar";
-import TabsDemo from "@/components/appx/tabs";
-import LineChartComponent from "@/components/appx/lineChart_cyclicality_frame";
-import ThirdNav from "@/components/appx/thirdNavBar_frame";
-import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptionsContext";
-import TableComponent from "@/components/appx/table_cyclicality_frame";
+useEffect(() => {
+  const fetchData = async () => {
+    if (!selectedOptions) return;
+    setLoading(true);
 
-export default function Page() {
-  return (
-    <SelectedOptionsProvider>
-      <PageContent />
-    </SelectedOptionsProvider>
-  );
-}
+    try {
+      setError(null);
+      const response = await axios.post(
+        "http://127.0.0.1:8000/cyclicality",
+        JSON.stringify(selectedOptions),
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-function PageContent() {
-  const { selectedOptions } = useSelectedOptions();
-  const [longRunData, setLongRunData] = useState<any[]>([]);
-  const [sdData, setSdData] = useState<any[]>([]);
-  const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
-  const [tableSDData, setTableSDData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+      const data = response.data;
+      console.log("Raw API Response:", JSON.stringify(data, null, 2)); // ✅ Check original values
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!selectedOptions) return;
-      setLoading(true);
+      const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
+      const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
 
-      try {
-        setError(null);
-        const response = await axios.post(
-          "http://127.0.0.1:8000/cyclicality",
-          JSON.stringify(selectedOptions),
-          { headers: { "Content-Type": "application/json" } }
-        );
+      console.log("Long Run Filtered Data Before Processing:", longRunFiltered);
+      console.log("SD Filtered Data Before Processing:", sdFiltered);
 
-        const data = response.data;
-        console.log("API Response:", data);
+      const segregateByMetric = (data: any[], metric: string) => {
+        return data
+          .filter((row: any) => row.METRIC === metric)
+          .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+          .slice(-5) // Get latest 5 records
+          .map((row: any) => ({
+            month: row.REPORT_DATE,
+            desktop: row.VALUE, // ✅ No modification, must include negatives
+            laptop: row.VALUE * 0.8, // ✅ Ensure negative values are maintained
+          }));
+      };
 
-        const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
-        const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+      setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
+      setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
 
-        const segregateByMetric = (data: any[], metric: string) => {
-          return data
-            .filter((row: any) => row.METRIC === metric)
-            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-            .slice(-5) // Get latest 5 records
-            .map((row: any) => ({
-              month: row.REPORT_DATE,
-              desktop: row.VALUE, // Keeping actual values, including negatives
-              laptop: row.VALUE * 0.8, // As per your original transformation
-            }));
-        };
+      console.log("Processed Long Run Data for Chart:", longRunData);
+      console.log("Processed SD Data for Chart:", sdData);
 
-        setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
-        setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
+      const formatTableData = (data: any[], metric: string) => {
+        return data
+          .filter((row: any) => row.METRIC === metric)
+          .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+          .map((row: any) => ({
+            a: row.REPORT_DATE,
+            b: row.MODEL, // Model Cyclicality
+            c: row.VALUE, // Final Cyclicality (✅ Must be exact API value)
+          }));
+      };
 
-        const formatTableData = (data: any[], metric: string) => {
-          return data
-            .filter((row: any) => row.METRIC === metric)
-            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-            .map((row: any) => ({
-              a: row.REPORT_DATE,
-              b: row.MODEL, // Model Cyclicality
-              c: row.VALUE, // Final Cyclicality (Negative values preserved)
-            }));
-        };
+      setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
+      setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
 
-        setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
-        setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [selectedOptions]);
-
-  const chartConfig = {
-    longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
-    standardDeviation: { label: "SD (Standard Deviation)", color: "red" },
+      console.log("Table Long Run Data:", tableLongRunData);
+      console.log("Table SD Data:", tableSDData);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="w-full h-full flex flex-col p-2 max-w-screen overflow-hidden">
-      <NavigationMenuDemo />
-      <TabsDemo />
-      <ThirdNav />
-
-      <div className="flex flex-wrap w-full gap-4 mt-4">
-        <div className="w-full sm:w-[49%] max-w-full">
-          <LineChartComponent title="Cyclicality: Long run" description="Chart for Cyclicality Long Run" data={longRunData} config={chartConfig} />
-        </div>
-
-        <div className="w-full sm:w-[49%] max-w-full">
-          <LineChartComponent title="Cyclicality: SD (Standard Deviation)" description="Chart for Cyclicality SD" data={sdData} config={chartConfig} />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap w-full gap-4 mt-4">
-        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-          <TableComponent data={tableLongRunData} />
-        </div>
-        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-          <TableComponent data={tableSDData} />
-        </div>
-      </div>
-    </div>
-  );
-}
+  fetchData();
+}, [selectedOptions]);
