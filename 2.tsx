@@ -20,7 +20,8 @@ export default function Page() {
 function PageContent() {
   const { selectedOptions } = useSelectedOptions();
   const [jsonData, setJsonData] = useState<any>(null);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [longRunData, setLongRunData] = useState<any[]>([]);
+  const [sdData, setSdData] = useState<any[]>([]);
   const [tableData, setTableData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +43,20 @@ function PageContent() {
         setJsonData(response.data);
         console.log(response.data);
 
-        // Transform JSON data to match chartData structure
-        const transformedData = response.data.Cyclicality["Long run"].rows.map((row) => ({
+        // Extract only Long Run data
+        const longRunChartData = response.data.Cyclicality["Long run"].rows.map((row) => ({
           month: row["REPORT DATE"],
-          longRun: row["VALUE"], // Long run value
-          standardDeviation:
-            response.data.Cyclicality["SD (Standard Deviation)"].rows.find(
-              (sdRow) => sdRow["REPORT DATE"] === row["REPORT DATE"]
-            )?.["VALUE"] || 0, // SD value, default to 0 if not found
+          value: row["VALUE"], // Only Long run values
         }));
 
-        setChartData(transformedData);
+        // Extract only SD (Standard Deviation) data
+        const sdChartData = response.data.Cyclicality["SD (Standard Deviation)"].rows.map((row) => ({
+          month: row["REPORT DATE"],
+          value: row["VALUE"], // Only SD values
+        }));
+
+        setLongRunData(longRunChartData);
+        setSdData(sdChartData);
       } catch (err) {
         console.error(err);
         setError("Failed to load data");
@@ -81,8 +85,8 @@ function PageContent() {
           <LineChartComponent
             description="Chart for Cyclicality Long Run"
             title="Cyclicality: Long run"
-            data={chartData}
-            config={chartConfig}
+            data={longRunData} // Only Long Run Data
+            config={chartConfig.longRun}
           />
         </div>
 
@@ -91,8 +95,8 @@ function PageContent() {
           <LineChartComponent
             title="Cyclicality: SD (Standard Deviation)"
             description="Chart for Cyclicality SD"
-            data={chartData}
-            config={chartConfig}
+            data={sdData} // Only SD Data
+            config={chartConfig.standardDeviation}
           />
         </div>
       </div>
