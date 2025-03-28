@@ -42,29 +42,14 @@ function PageContent() {
                 const longRunFiltered = data["Cyclicality: Long run"]?.rows || [];
                 const sdFiltered = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
 
-                const segregateByMetric = (data: any[], metric: string) => {
-                    return data
-                        .filter((row) => row.METRIC === metric)
-                        .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-                        .slice(-5) // Get latest 5 records
-                        .map((row) => ({
-                            month: row.REPORT_DATE,
-                            desktop: row.VALUE,
-                            laptop: row.VALUE * 0.8
-                        }));
-                };
-
-                setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
-                setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
-
                 const formatTableData = (data: any[], metric: string) => {
                     return data
                         .filter((row) => row.METRIC === metric)
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
                         .map((row) => ({
                             quarter: row.REPORT_DATE,
-                            "Model Cyclicality Long Run": row.MODEL,
-                            "Final Cyclicality Long Run": row.VALUE
+                            model: row.MODEL,
+                            final: row.VALUE
                         }));
                 };
 
@@ -81,45 +66,19 @@ function PageContent() {
         fetchData();
     }, [selectedOptions]);
 
-    const chartConfig = {
-        longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
-        standardDeviation: { label: "SD (Standard Deviation)", color: "red" }
-    };
-
     return (
         <div className="w-full h-full flex flex-col p-2 max-w-screen overflow-hidden">
             <NavigationMenuDemo />
             <TabsDemo />
             <ThirdNav />
 
-            <div className="flex flex-wrap w-full gap-4 mt-4">
-                {/* Cyclicality: Long run */}
-                <div className="w-full sm:w-[49%] max-w-full">
-                    <LineChartComponent
-                        title="Cyclicality: Long run"
-                        description="Chart for Cyclicality Long Run"
-                        data={longRunData}
-                        config={chartConfig.longRun}
-                    />
-                </div>
-                {/* Cyclicality: SD (Standard Deviation) */}
-                <div className="w-full sm:w-[49%] max-w-full">
-                    <LineChartComponent
-                        title="Cyclicality: SD (Standard Deviation)"
-                        description="Chart for Cyclicality SD"
-                        data={sdData}
-                        config={chartConfig.standardDeviation}
-                    />
-                </div>
-            </div>
-
             {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableLongRunData} />
+                    <TableComponent data={tableLongRunData} title="Cyclicality Long Run" />
                 </div>
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableSDData} />
+                    <TableComponent data={tableSDData} title="Cyclicality SD (Standard Deviation)" />
                 </div>
             </div>
         </div>
