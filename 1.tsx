@@ -1,50 +1,54 @@
-"use client";
+"use client"
 
 import React, { useEffect, useState } from "react";
-import "react-tabulator/lib/css/tabulator.min.css";
-import "tabulator-tables/dist/css/tabulator_bootstrap4.min.css"; // Bootstrap theme
-import { ReactTabulator, ReactTabulatorOptions, ColumnDefinition } from "react-tabulator";
+import 'react-tabulator/lib/css/tabulator.min.css';
+import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css'; // use Theme(s)
+import { ReactTabulator, ReactTabulatorOptions, ColumnDefinition } from 'react-tabulator';
 
 interface TableComponentProps {
-    data: any[];
-    title: string;
+  data: any[];
 }
 
-const TableComponent: React.FC<TableComponentProps> = ({ data, title }) => {
-    const columns: ColumnDefinition[] = [
-        { title: "Quarter", field: "quarter", width: 150 },
-        { title: "Model Cyclicality", field: "model", width: 250 },
-        { title: "Final Cyclicality", field: "final", width: 250 }
-    ];
+const TableComponent: React.FC<TableComponentProps> = ({ data }) => {
+  const columns: ColumnDefinition[] = [
+    { title: "Quarter", field: "quarter", width: 150 },
+    { title: "Model Cyclicality Long Run", field: "modelCyclicality", width: 250 },
+    { title: "Final Cyclicality Long Run", field: "finalCyclicality", width: 250 },
+  ];
 
-    const [isClient, setIsClient] = useState(false);
+  const formattedData = data.map((row, index) => ({
+    id: index + 1,
+    quarter: row.month,
+    modelCyclicality: row.desktop,
+    finalCyclicality: row.laptop,
+  }));
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-    if (!isClient) return <div>Loading table...</div>;
+  if (!isClient) return <div>Loading table...</div>;
 
-    const options: ReactTabulatorOptions = {
-        height: 350,
-        movableRows: true,
-        movableColumns: true,
-        layout: "fitColumns",
-        resizableColumns: true,
-    };
+  const options: ReactTabulatorOptions = {
+    height: 350,
+    movableRows: true,
+    movableColumns: true,
+    layout: "fitColumns",
+    resizableColumns: true,
+  };
 
-    return (
-        <div className="rounded-lg shadow-md overflow-hidden p-2">
-            <h2 className="text-lg font-semibold text-center mb-2">{title}</h2>
-            <ReactTabulator
-                data={data}
-                columns={columns}
-                options={options}
-                layout="fitDataStretch"
-                className="rounded-lg hover:shadow-lg transition-shadow"
-            />
-        </div>
-    );
+  return (
+    <div>
+      <ReactTabulator 
+        data={formattedData} 
+        columns={columns} 
+        layout="fitDataStretch" 
+        options={options} 
+        className="rounded-lg hover:shadow-lg transition-shadow"
+      />
+    </div>
+  );
 };
 
 export default TableComponent;
