@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import NavigationMenuDemo from "@/components/appx/navigationBar";
 import TabsDemo from "@/components/appx/tabs";
 import LineChartComponent from "@/components/appx/lineChart_cyclicality_frame";
 import ThirdNav from "@/components/appx/thirdNavBar_frame";
 import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptionsContext";
 import TableComponent from "@/components/appx/table_cyclicality_frame";
-import axios from "axios";
 
 export default function Page() {
   return (
@@ -27,8 +27,8 @@ function PageContent() {
   useEffect(() => {
     const fetchData = async () => {
       if (!selectedOptions) return;
-
       setLoading(true);
+
       try {
         setError(null);
         const response = await axios.post(
@@ -36,7 +36,9 @@ function PageContent() {
           JSON.stringify(selectedOptions),
           { headers: { "Content-Type": "application/json" } }
         );
+
         const data = response.data;
+        console.log("API Response:", data);
 
         const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
         const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
@@ -45,11 +47,11 @@ function PageContent() {
           return data
             .filter((row: any) => row.METRIC === metric)
             .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-            .slice(-5)
+            .slice(-5) // Get latest 5 records
             .map((row: any) => ({
               month: row.REPORT_DATE,
-              desktop: row.VALUE,
-              laptop: row.VALUE * 0.8,
+              desktop: row.VALUE, // Keeping actual values, including negatives
+              laptop: row.VALUE * 0.8, // As per your original transformation
             }));
         };
 
@@ -61,9 +63,9 @@ function PageContent() {
             .filter((row: any) => row.METRIC === metric)
             .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
             .map((row: any) => ({
-              Quarter: row.REPORT_DATE,
-              "Model Cyclicality Long Run": row.MODEL < 0 ? row.MODEL : row.MODEL,
-              "Final Cyclicality Long Run": row.VALUE,
+              a: row.REPORT_DATE,
+              b: row.MODEL, // Model Cyclicality
+              c: row.VALUE, // Final Cyclicality (Negative values preserved)
             }));
         };
 
@@ -92,23 +94,19 @@ function PageContent() {
       <ThirdNav />
 
       <div className="flex flex-wrap w-full gap-4 mt-4">
-        {/* Cyclicality: Long run */}
         <div className="w-full sm:w-[49%] max-w-full">
           <LineChartComponent title="Cyclicality: Long run" description="Chart for Cyclicality Long Run" data={longRunData} config={chartConfig} />
         </div>
 
-        {/* Cyclicality: SD (Standard Deviation) */}
         <div className="w-full sm:w-[49%] max-w-full">
           <LineChartComponent title="Cyclicality: SD (Standard Deviation)" description="Chart for Cyclicality SD" data={sdData} config={chartConfig} />
         </div>
       </div>
 
-      {/* Table section */}
       <div className="flex flex-wrap w-full gap-4 mt-4">
         <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
           <TableComponent data={tableLongRunData} />
         </div>
-
         <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
           <TableComponent data={tableSDData} />
         </div>
