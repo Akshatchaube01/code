@@ -43,20 +43,38 @@ function PageContent() {
         setJsonData(response.data);
         console.log(response.data);
 
-        // Extract only Long Run data
-        const longRunChartData = response.data.Cyclicality["Long run"].rows.map((row) => ({
-          month: row["REPORT DATE"],
-          value: row["VALUE"], // Only Long run values
+        // Extract Long Run and SD data
+        const longRunFiltered = response.data["Cyclicality: Long run"]?.rows || [];
+        const sdFiltered = response.data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+
+        // Function to get the latest five dates
+        const getLatestFiveDates = (data: any) => {
+          const sortedData = [...data].sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1));
+          return sortedData.slice(-5);
+        };
+
+        // Get latest 5 records for Long Run and SD
+        const longRunLatest = getLatestFiveDates(longRunFiltered);
+        const sdLatest = getLatestFiveDates(sdFiltered);
+
+        // Transform data for chart
+        const longRunChartData = longRunLatest.map((row: any) => ({
+          month: row.REPORT_DATE,
+          desktop: row.VALUE,
+          laptop: row.VALUE * 0.8,
         }));
 
-        // Extract only SD (Standard Deviation) data
-        const sdChartData = response.data.Cyclicality["SD (Standard Deviation)"].rows.map((row) => ({
-          month: row["REPORT DATE"],
-          value: row["VALUE"], // Only SD values
+        const sdChartData = sdLatest.map((row: any) => ({
+          month: row.REPORT_DATE,
+          desktop: row.VALUE,
+          laptop: row.VALUE * 0.8,
         }));
 
+        // Update state
         setLongRunData(longRunChartData);
         setSdData(sdChartData);
+        setTableData([...longRunFiltered, ...sdFiltered]);
+
       } catch (err) {
         console.error(err);
         setError("Failed to load data");
