@@ -1,7 +1,7 @@
 "use client";
 
-import axios from "axios";
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import NavigationMenuDemo from "@/components/appx/navigationBar";
 import TabsDemo from "@/components/appx/tabs";
 import { LineChartComponent } from "@/components/appx/lineChart_cyclicality_frame";
@@ -21,14 +21,14 @@ function PageContent() {
     const { selectedOptions } = useSelectedOptions();
     const [longRunData, setLongRunData] = useState<any[]>([]);
     const [sdData, setSdData] = useState<any[]>([]);
-    const [tableData, setTableData] = useState<any[]>([]);
+    const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
+    const [tableSDData, setTableSDData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             if (!selectedOptions) return;
-
             setLoading(true);
             try {
                 setError(null);
@@ -39,7 +39,6 @@ function PageContent() {
                 );
                 
                 const data = response.data;
-                
                 const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
                 const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
                 
@@ -49,16 +48,28 @@ function PageContent() {
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
                         .slice(-5) // Get latest 5 records
                         .map((row: any) => ({
-                            quarter: row.REPORT_DATE,
-                            model_long_run: row.MODEL || "N/A",
-                            final_long_run: row.VALUE || 0,
-                            final_sd: sdFiltered.find(sd => sd.REPORT_DATE === row.REPORT_DATE)?.VALUE || 0
+                            month: row.REPORT_DATE,
+                            desktop: row.VALUE,
+                            laptop: row.VALUE * 0.8
                         }));
                 };
-
+                
                 setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
                 setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
-                setTableData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
+                
+                const formatTableData = (data: any[], metric: string) => {
+                    return data
+                        .filter((row: any) => row.METRIC === metric)
+                        .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+                        .map((row: any) => ({
+                            quarter: row.REPORT_DATE,
+                            "Model Cyclicality Long Run": row.MODEL,
+                            "Final Cyclicality Long Run": row.VALUE
+                        }));
+                };
+                
+                setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
+                setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
             } catch (err) {
                 console.error(err);
                 setError("Failed to load data");
@@ -82,7 +93,6 @@ function PageContent() {
             <ThirdNav />
 
             <div className="flex flex-wrap w-full gap-4 mt-4">
-                {/* Cyclicality: Long run */}
                 <div className="w-full sm:w-[49%] max-w-full">
                     <LineChartComponent
                         title="Cyclicality: Long run"
@@ -91,7 +101,6 @@ function PageContent() {
                         config={chartConfig.longRun}
                     />
                 </div>
-                {/* Cyclicality: SD (Standard Deviation) */}
                 <div className="w-full sm:w-[49%] max-w-full">
                     <LineChartComponent
                         title="Cyclicality: SD (Standard Deviation)"
@@ -102,10 +111,12 @@ function PageContent() {
                 </div>
             </div>
 
-            {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableData} />
+                    <TableComponent data={tableLongRunData} />
+                </div>
+                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
+                    <TableComponent data={tableSDData} />
                 </div>
             </div>
         </div>
