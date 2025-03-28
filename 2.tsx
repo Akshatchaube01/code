@@ -21,8 +21,7 @@ function PageContent() {
     const { selectedOptions } = useSelectedOptions();
     const [longRunData, setLongRunData] = useState<any[]>([]);
     const [sdData, setSdData] = useState<any[]>([]);
-    const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
-    const [tableSDData, setTableSDData] = useState<any[]>([]);
+    const [tableData, setTableData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -50,28 +49,16 @@ function PageContent() {
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
                         .slice(-5) // Get latest 5 records
                         .map((row: any) => ({
-                            month: row.REPORT_DATE,
-                            desktop: row.VALUE,
-                            laptop: row.VALUE * 0.8
+                            quarter: row.REPORT_DATE,
+                            model_long_run: row.MODEL || "N/A",
+                            final_long_run: row.VALUE || 0,
+                            final_sd: sdFiltered.find(sd => sd.REPORT_DATE === row.REPORT_DATE)?.VALUE || 0
                         }));
                 };
 
                 setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
                 setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
-
-                const formatTableData = (data: any[], metric: string) => {
-                    return data
-                        .filter((row: any) => row.METRIC === metric)
-                        .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-                        .map((row: any) => ({
-                            Quarter: row.REPORT_DATE,
-                            "Model Cyclicality Long Run": row.MODEL,
-                            "Final Cyclicality Long Run": row.VALUE
-                        }));
-                };
-
-                setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
-                setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
+                setTableData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
             } catch (err) {
                 console.error(err);
                 setError("Failed to load data");
@@ -118,10 +105,7 @@ function PageContent() {
             {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableLongRunData} />
-                </div>
-                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableSDData} />
+                    <TableComponent data={tableData} />
                 </div>
             </div>
         </div>
