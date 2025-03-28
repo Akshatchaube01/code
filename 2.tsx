@@ -57,7 +57,15 @@ function PageContent() {
 
                 setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
                 setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
-                setTableData([...longRunFiltered, ...sdFiltered]);
+
+                const formattedTableData = longRunFiltered.slice(-5).map((row, index) => ({
+                    id: index + 1,
+                    a: row.REPORT_DATE,
+                    b: row.VALUE,
+                    c: sdFiltered.find(sdRow => sdRow.REPORT_DATE === row.REPORT_DATE)?.VALUE || "N/A"
+                }));
+
+                setTableData(formattedTableData);
             } catch (err) {
                 console.error(err);
                 setError("Failed to load data");
@@ -103,9 +111,6 @@ function PageContent() {
 
             {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
-                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableData} />
-                </div>
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
                     <TableComponent data={tableData} />
                 </div>
