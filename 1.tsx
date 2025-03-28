@@ -12,48 +12,56 @@ useEffect(() => {
       );
 
       const data = response.data;
-      console.log("Raw API Response:", JSON.stringify(data, null, 2)); // ✅ Check original values
+      console.log("✅ Raw API Response:", JSON.stringify(data, null, 2));
 
-      const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
-      const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+      const longRunFiltered = data["Cyclicality: Long run"]?.rows || [];
+      const sdFiltered = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
 
-      console.log("Long Run Filtered Data Before Processing:", longRunFiltered);
-      console.log("SD Filtered Data Before Processing:", sdFiltered);
+      console.log("✅ Before Transformation - Long Run:", JSON.stringify(longRunFiltered, null, 2));
+      console.log("✅ Before Transformation - SD:", JSON.stringify(sdFiltered, null, 2));
 
-      const segregateByMetric = (data: any[], metric: string) => {
+      // ✅ New transformation logic (correct sorting, no random values)
+      const processDataForChart = (data, metric) => {
         return data
-          .filter((row: any) => row.METRIC === metric)
-          .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-          .slice(-5) // Get latest 5 records
-          .map((row: any) => ({
+          .filter(row => row.METRIC === metric)
+          .sort((a, b) => new Date(a.REPORT_DATE) - new Date(b.REPORT_DATE)) // Ensure correct sorting
+          .slice(-5) // Take last 5 records
+          .map(row => ({
             month: row.REPORT_DATE,
-            desktop: row.VALUE, // ✅ No modification, must include negatives
-            laptop: row.VALUE * 0.8, // ✅ Ensure negative values are maintained
+            desktop: row.VALUE, // ✅ Ensure negatives are kept
+            laptop: row.VALUE * 0.8, // ✅ Maintain scaling but preserve signs
           }));
       };
 
-      setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
-      setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
+      const processedLongRun = processDataForChart(longRunFiltered, "Final Cyclicality Long run");
+      const processedSD = processDataForChart(sdFiltered, "Final Cyclicality SD");
 
-      console.log("Processed Long Run Data for Chart:", longRunData);
-      console.log("Processed SD Data for Chart:", sdData);
+      console.log("✅ Processed Chart Data - Long Run:", JSON.stringify(processedLongRun, null, 2));
+      console.log("✅ Processed Chart Data - SD:", JSON.stringify(processedSD, null, 2));
 
-      const formatTableData = (data: any[], metric: string) => {
+      setLongRunData(processedLongRun);
+      setSdData(processedSD);
+
+      // ✅ Table transformation with negative values preserved
+      const formatTableData = (data, metric) => {
         return data
-          .filter((row: any) => row.METRIC === metric)
-          .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-          .map((row: any) => ({
+          .filter(row => row.METRIC === metric)
+          .sort((a, b) => new Date(a.REPORT_DATE) - new Date(b.REPORT_DATE))
+          .map(row => ({
             a: row.REPORT_DATE,
-            b: row.MODEL, // Model Cyclicality
-            c: row.VALUE, // Final Cyclicality (✅ Must be exact API value)
+            b: row.MODEL,
+            c: row.VALUE, // ✅ No modification to values
           }));
       };
 
-      setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
-      setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
+      const tableLongRun = formatTableData(longRunFiltered, "Final Cyclicality Long run");
+      const tableSD = formatTableData(sdFiltered, "Final Cyclicality SD");
 
-      console.log("Table Long Run Data:", tableLongRunData);
-      console.log("Table SD Data:", tableSDData);
+      console.log("✅ Table Data - Long Run:", JSON.stringify(tableLongRun, null, 2));
+      console.log("✅ Table Data - SD:", JSON.stringify(tableSD, null, 2));
+
+      setTableLongRunData(tableLongRun);
+      setTableSDData(tableSD);
     } catch (err) {
       console.error(err);
       setError("Failed to load data");
