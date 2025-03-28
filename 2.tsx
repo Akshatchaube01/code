@@ -19,11 +19,11 @@ export default function Page() {
 
 function PageContent() {
     const { selectedOptions } = useSelectedOptions();
-    const [longRunData, setLongRunData] = useState([]);
-    const [sdData, setSdData] = useState([]);
-    const [tableData, setTableData] = useState([]);
+    const [longRunData, setLongRunData] = useState<any[]>([]);
+    const [sdData, setSdData] = useState<any[]>([]);
+    const [tableData, setTableData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -40,15 +40,15 @@ function PageContent() {
                 
                 const data = response.data;
                 
-                const longRunFiltered = data["Cyclicality: Long run"]?.rows || [];
-                const sdFiltered = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+                const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
+                const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
                 
-                const segregateByMetric = (data, metric) => {
+                const segregateByMetric = (data: any[], metric: string) => {
                     return data
-                        .filter(row => row.METRIC === metric)
+                        .filter((row: any) => row.METRIC === metric)
                         .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
                         .slice(-5) // Get latest 5 records
-                        .map(row => ({
+                        .map((row: any) => ({
                             month: row.REPORT_DATE,
                             desktop: row.VALUE,
                             laptop: row.VALUE * 0.8
