@@ -1,54 +1,118 @@
-"use client"
+import React, { useState, useEffect } from "react";
+import NavigationMenuDemo from "@/components/appx/navigationBar";
+import TabsDemo from "@/components/appx/tabs";
+import LineChartComponent from "@/components/appx/lineChart_cyclicality_frame";
+import ThirdNav from "@/components/appx/thirdNavBar_frame";
+import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptionsContext";
+import TableComponent from "@/components/appx/table_cyclicality_frame";
+import axios from "axios";
 
-import React, { useEffect, useState } from "react";
-import 'react-tabulator/lib/css/tabulator.min.css';
-import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css'; // use Theme(s)
-import { ReactTabulator, ReactTabulatorOptions, ColumnDefinition } from 'react-tabulator';
-
-interface TableComponentProps {
-  data: any[];
+export default function Page() {
+  return (
+    <SelectedOptionsProvider>
+      <PageContent />
+    </SelectedOptionsProvider>
+  );
 }
 
-const TableComponent: React.FC<TableComponentProps> = ({ data }) => {
-  const columns: ColumnDefinition[] = [
-    { title: "Quarter", field: "quarter", width: 150 },
-    { title: "Model Cyclicality Long Run", field: "modelCyclicality", width: 250 },
-    { title: "Final Cyclicality Long Run", field: "finalCyclicality", width: 250 },
-  ];
+function PageContent() {
+  const { selectedOptions } = useSelectedOptions();
+  const [longRunData, setLongRunData] = useState<any[]>([]);
+  const [sdData, setSdData] = useState<any[]>([]);
+  const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
+  const [tableSDData, setTableSDData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const formattedData = data.map((row, index) => ({
-    id: index + 1,
-    quarter: row.month,
-    modelCyclicality: row.desktop,
-    finalCyclicality: row.laptop,
-  }));
-
-  const [isClient, setIsClient] = useState(false);
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const fetchData = async () => {
+      if (!selectedOptions) return;
 
-  if (!isClient) return <div>Loading table...</div>;
+      setLoading(true);
+      try {
+        setError(null);
+        const response = await axios.post(
+          "http://127.0.0.1:8000/cyclicality",
+          JSON.stringify(selectedOptions),
+          { headers: { "Content-Type": "application/json" } }
+        );
+        const data = response.data;
 
-  const options: ReactTabulatorOptions = {
-    height: 350,
-    movableRows: true,
-    movableColumns: true,
-    layout: "fitColumns",
-    resizableColumns: true,
+        const longRunFiltered: any[] = data["Cyclicality: Long run"]?.rows || [];
+        const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+
+        const segregateByMetric = (data: any[], metric: string) => {
+          return data
+            .filter((row: any) => row.METRIC === metric)
+            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+            .slice(-5)
+            .map((row: any) => ({
+              month: row.REPORT_DATE,
+              desktop: row.VALUE,
+              laptop: row.VALUE * 0.8,
+            }));
+        };
+
+        setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
+        setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
+
+        const formatTableData = (data: any[], metric: string) => {
+          return data
+            .filter((row: any) => row.METRIC === metric)
+            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+            .map((row: any) => ({
+              Quarter: row.REPORT_DATE,
+              "Model Cyclicality Long Run": row.MODEL < 0 ? row.MODEL : row.MODEL,
+              "Final Cyclicality Long Run": row.VALUE,
+            }));
+        };
+
+        setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
+        setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedOptions]);
+
+  const chartConfig = {
+    longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
+    standardDeviation: { label: "SD (Standard Deviation)", color: "red" },
   };
 
   return (
-    <div>
-      <ReactTabulator 
-        data={formattedData} 
-        columns={columns} 
-        layout="fitDataStretch" 
-        options={options} 
-        className="rounded-lg hover:shadow-lg transition-shadow"
-      />
+    <div className="w-full h-full flex flex-col p-2 max-w-screen overflow-hidden">
+      <NavigationMenuDemo />
+      <TabsDemo />
+      <ThirdNav />
+
+      <div className="flex flex-wrap w-full gap-4 mt-4">
+        {/* Cyclicality: Long run */}
+        <div className="w-full sm:w-[49%] max-w-full">
+          <LineChartComponent title="Cyclicality: Long run" description="Chart for Cyclicality Long Run" data={longRunData} config={chartConfig} />
+        </div>
+
+        {/* Cyclicality: SD (Standard Deviation) */}
+        <div className="w-full sm:w-[49%] max-w-full">
+          <LineChartComponent title="Cyclicality: SD (Standard Deviation)" description="Chart for Cyclicality SD" data={sdData} config={chartConfig} />
+        </div>
+      </div>
+
+      {/* Table section */}
+      <div className="flex flex-wrap w-full gap-4 mt-4">
+        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
+          <TableComponent data={tableLongRunData} />
+        </div>
+
+        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
+          <TableComponent data={tableSDData} />
+        </div>
+      </div>
     </div>
   );
-};
-
-export default TableComponent;
+}
