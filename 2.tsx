@@ -21,7 +21,8 @@ function PageContent() {
     const { selectedOptions } = useSelectedOptions();
     const [longRunData, setLongRunData] = useState<any[]>([]);
     const [sdData, setSdData] = useState<any[]>([]);
-    const [tableData, setTableData] = useState<any[]>([]);
+    const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
+    const [tableSDData, setTableSDData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -58,14 +59,19 @@ function PageContent() {
                 setLongRunData(segregateByMetric(longRunFiltered, "Final Cyclicality Long run"));
                 setSdData(segregateByMetric(sdFiltered, "Final Cyclicality SD"));
 
-                const formattedTableData = longRunFiltered.slice(-5).map((row, index) => ({
-                    id: index + 1,
-                    a: row.REPORT_DATE,
-                    b: row.VALUE,
-                    c: sdFiltered.find(sdRow => sdRow.REPORT_DATE === row.REPORT_DATE)?.VALUE || "N/A"
-                }));
+                const formatTableData = (data: any[], metric: string) => {
+                    return data
+                        .filter((row: any) => row.METRIC === metric)
+                        .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+                        .map((row: any) => ({
+                            Quarter: row.REPORT_DATE,
+                            "Model Cyclicality Long Run": row.MODEL,
+                            "Final Cyclicality Long Run": row.VALUE
+                        }));
+                };
 
-                setTableData(formattedTableData);
+                setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
+                setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
             } catch (err) {
                 console.error(err);
                 setError("Failed to load data");
@@ -112,7 +118,10 @@ function PageContent() {
             {/* Table section */}
             <div className="flex flex-wrap w-full gap-4 mt-4">
                 <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableData} />
+                    <TableComponent data={tableLongRunData} />
+                </div>
+                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
+                    <TableComponent data={tableSDData} />
                 </div>
             </div>
         </div>
