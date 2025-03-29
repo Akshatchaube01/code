@@ -8,8 +8,27 @@ import { SelectedOptionsProvider } from '@/components/appx/context/SelectedOptio
 import TableComponent from '@/components/appx/table_tabulator';
 import { BarChartFrame } from '@/components/appx/barChart_frame';
 
+// Define TypeScript interfaces
+interface ApiResponse {
+    "Actual Vs Expected": {
+        columns: string[];
+        rows: ApiRow[];
+    };
+}
+
+interface ApiRow {
+    REPORT_DATE: string;
+    METRIC: string;
+    VALUE: number;
+}
+
+interface ChartData {
+    month: string;
+    [key: string]: string | number; // Allow dynamic metric keys
+}
+
 export default function Page() {
-    const [chartData, setChartData] = useState([]);
+    const [chartData, setChartData] = useState<ChartData[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -24,12 +43,12 @@ export default function Page() {
                     }),
                 });
 
-                const result = await response.json();
+                const result: ApiResponse = await response.json();
 
-                // Process API response to extract the required chart data
+                // Extract "Actual Vs Expected" data
                 const actualVsExpectedData = result["Actual Vs Expected"]?.rows || [];
 
-                const formattedData = actualVsExpectedData.reduce((acc, row) => {
+                const formattedData: ChartData[] = actualVsExpectedData.reduce((acc: ChartData[], row: ApiRow) => {
                     const { REPORT_DATE, METRIC, VALUE } = row;
 
                     // Find existing entry for this REPORT_DATE
@@ -39,7 +58,7 @@ export default function Page() {
                         acc.push(existingEntry);
                     }
 
-                    // Map metrics dynamically
+                    // Assign metric value dynamically
                     existingEntry[METRIC] = VALUE;
                     return acc;
                 }, []);
