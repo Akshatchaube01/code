@@ -5,114 +5,154 @@ import TabsDemo from '@/components/appx/tabs';
 import Component1 from '@/components/appx/lineChart_frame1';
 import Component2 from '@/components/appx/lineChart_frame2';
 import Component3 from '@/components/appx/lineChart_frame3';
-import { ChartConfig } from '@/components/frame/ui/chart';
+import ChartConfig from "@/components/frame/ui/chart";
 import ThirdNav from '@/components/appx/thirdNavBar_frame';
 import { SelectedOptionsProvider } from '@/components/appx/context/SelectedOptionsContext';
 import TableComponent from '@/components/appx/table_tabulator';
+import BarChartFrame from '@/components/appx/barChart_frame';
+
+// Define the structure of the API response
+interface ApiResponse {
+  "Actual Vs Expected": {
+    columns: string[];
+    rows: ApiRow[];
+  };
+}
+
+// Define each row in the response
+interface ApiRow {
+  REPORT_DATE: string;
+  METRIC: string;
+  VALUE: number;
+}
+
+// Define the structure of the chart data
+interface ChartData {
+  month: string;
+  avg_final_pd_bt?: number;
+  avg_model_modified_pd_bt?: number;
+  avg_model_pd_bt?: number;
+  central_tendency?: number;
+  long_run_default_rate?: number;
+  obv_def_rate?: number;
+}
 
 export default function Page() {
-    const [chartData1, setChartData1] = useState([]);
-    const [chartData2, setChartData2] = useState([]);
-    const [chartData3, setChartData3] = useState([]);
+  const [chartData1, setChartData1] = useState<ChartData[]>([]);
+  const [chartData2, setChartData2] = useState<ChartData[]>([]);
+  const [chartData3, setChartData3] = useState<ChartData[]>([]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.post('YOUR_BACKEND_API_URL/backtesting', {});
-                const data = response.data;
-                
-                const formattedData1 = [];
-                const formattedData2 = [];
-                const formattedData3 = [];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.post<ApiResponse>('/backtesting');
+        const apiData = response.data["Actual Vs Expected"].rows;
 
-                data.forEach((item) => {
-                    const { REPORT_DATE, METRIC, VALUE } = item;
-                    
-                    if (METRIC.includes("PD_BT")) {
-                        let entry = formattedData1.find(d => d.month === REPORT_DATE);
-                        if (!entry) {
-                            entry = { month: REPORT_DATE };
-                            formattedData1.push(entry);
-                        }
-                        entry[METRIC] = VALUE;
-                    } else if (METRIC.includes("CRR_CT")) {
-                        let entry = formattedData2.find(d => d.month === REPORT_DATE);
-                        if (!entry) {
-                            entry = { month: REPORT_DATE };
-                            formattedData2.push(entry);
-                        }
-                        entry[METRIC] = VALUE;
-                    } else if (METRIC.includes("CRR_LRADR")) {
-                        let entry = formattedData3.find(d => d.month === REPORT_DATE);
-                        if (!entry) {
-                            entry = { month: REPORT_DATE };
-                            formattedData3.push(entry);
-                        }
-                        entry[METRIC] = VALUE;
-                    }
-                });
+        // Group data by REPORT_DATE and structure it for charts
+        const formattedData1: ChartData[] = [];
+        const formattedData2: ChartData[] = [];
+        const formattedData3: ChartData[] = [];
 
-                setChartData1(formattedData1);
-                setChartData2(formattedData2);
-                setChartData3(formattedData3);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
+        apiData.forEach((row) => {
+          const metricKey = row.METRIC.toLowerCase().replace(/\s+/g, '_') as keyof ChartData;
+          
+          let targetArray = formattedData1; // Default to first chartData array
+          if (["final_crr_ct", "model_modified_crr_ct", "model_crr_ct"].includes(metricKey)) {
+            targetArray = formattedData2;
+          } else if (["final_crr_lradr", "model_modified_crr_lradr", "model_crr_lradr"].includes(metricKey)) {
+            targetArray = formattedData3;
+          }
 
-        fetchData();
-    }, []);
+          const existingEntry = targetArray.find((item) => item.month === row.REPORT_DATE);
+          if (existingEntry) {
+            existingEntry[metricKey] = row.VALUE;
+          } else {
+            targetArray.push({
+              month: row.REPORT_DATE,
+              [metricKey]: row.VALUE,
+            });
+          }
+        });
 
-    const chartTitle = [
-        "Actual vs Expected - TOTAL",
-        "Notching Approach based on Central Tendency - TOTAL",
-        "Notching Approach based on Long Run - TOTAL"
-    ];
+        setChartData1(formattedData1);
+        setChartData2(formattedData2);
+        setChartData3(formattedData3);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
 
-    const chartDescription = "Chart description";
+    fetchData();
+  }, []);
 
-    const chartConfig1 = {
-        "Avg Final PD_BT": { label: "Avg Final PD_BT", color: "rgb(12, 74, 110)" },
-        "Avg Model Modified PD_BT": { label: "Avg Model Modified PD_BT", color: "red" },
-        "Avg Model PD_BT": { label: "Avg Model PD_BT", color: "green" }
-    } satisfies ChartConfig;
+  const chartTitleStack = [
+    "Model Poisson Binomial Test Results",
+    "Model Modified Poisson Binomial Test Results",
+    "Final Poisson Binomial Test Results"
+  ];
 
-    const chartConfig2 = {
-        "Final_CRR_CT": { label: "Final CRR CT", color: "rgb(12, 74, 110)" },
-        "Model_Modified_CRR_CT": { label: "Model Modified CRR CT", color: "red" },
-        "Model_CRR_CT": { label: "Model CRR CT", color: "green" }
-    } satisfies ChartConfig;
+  const chartTitles = [
+    "Actual vs Expected - TOTAL",
+    "Notching Approach based on Central tendency - TOTAL",
+    "Notching Approach based on long run - TOTAL"
+  ];
 
-    const chartConfig3 = {
-        "Final_CRR_LRADR": { label: "Final CRR LRADR", color: "rgb(12, 74, 110)" },
-        "Model_Modified_CRR_LRADR": { label: "Model Modified CRR LRADR", color: "red" },
-        "Model_CRR_LRADR": { label: "Model CRR LRADR", color: "green" }
-    } satisfies ChartConfig;
+  const chartDescription = "Chart description";
 
-    return (
-        <>
-            <div>
-                <NavigationMenuDemo />
-                <TabsDemo />
-            </div>
+  const chartConfig1 = {
+    avg_final_pd_bt: { label: "Avg Final PD_BT", color: "rgb(12, 74, 110)" },
+    avg_model_modified_pd_bt: { label: "Avg Model Modified PD_BT", color: "red" },
+    avg_model_pd_bt: { label: "Avg Model PD_BT", color: "green" },
+    central_tendency: { label: "Central Tendency", color: "purple" },
+    long_run_default_rate: { label: "Long run default rate", color: "blue" },
+    obv_def_rate: { label: "Observed Default Rate (Last 12 Months)", color: "black" }
+  } satisfies ChartConfig;
 
-            <SelectedOptionsProvider>
-                <div className="size-screen w-full h-full flex flex-col gap-1 p-1">
-                    <div className='mt-0'>
-                        <ThirdNav />
-                    </div>
+  const chartConfig2 = {
+    final_crr_ct: { label: "Final CRR CT", color: "rgb(12, 74, 110)" },
+    model_modified_crr_ct: { label: "Model Modified CRR CT", color: "red" },
+    model_crr_ct: { label: "Model CRR CT", color: "green" }
+  } satisfies ChartConfig;
 
-                    <div className='flex w-full h-full flex-row pd-4 gap-x-5'>
-                        <Component1 title={chartTitle[0]} description={chartDescription} data={chartData1} config={chartConfig1} />
-                        <Component2 title={chartTitle[1]} description={chartDescription} data={chartData2} config={chartConfig2} />
-                        <Component3 title={chartTitle[2]} description={chartDescription} data={chartData3} config={chartConfig3} />
-                    </div>
+  const chartConfig3 = {
+    final_crr_lradr: { label: "Final CRR LRADR", color: "rgb(12, 74, 110)" },
+    model_modified_crr_lradr: { label: "Model Modified CRR LRADR", color: "red" },
+    model_crr_lradr: { label: "Model CRR LRADR", color: "green" }
+  } satisfies ChartConfig;
 
-                    <div className='pt-6'>
-                        <TableComponent />
-                    </div>
-                </div>
-            </SelectedOptionsProvider>
-        </>
-    );
+  return (
+    <>
+      <div>
+        <NavigationMenuDemo />
+        <TabsDemo />
+      </div>
+
+      <SelectedOptionsProvider>
+        <div className="size-screen w-full h-full flex flex-col gap-1 p-1">
+          <div className='mt-0'>
+            <ThirdNav />
+          </div>
+
+          {/* Line Charts */}
+          <div className='flex w-full h-full flex-row pd-4 gap-x-5'>
+            <Component1 title={chartTitles[0]} description={chartDescription} data={chartData1} config={chartConfig1} />
+            <Component2 title={chartTitles[1]} description={chartDescription} data={chartData2} config={chartConfig2} />
+            <Component3 title={chartTitles[2]} description={chartDescription} data={chartData3} config={chartConfig3} />
+          </div>
+
+          {/* Bar Charts */}
+          <div className='flex flex-row pd-4 gap-x-5'>
+            <BarChartFrame title={chartTitleStack[0]} description={chartDescription} data={chartData1} config={chartConfig1} />
+            <BarChartFrame title={chartTitleStack[1]} description={chartDescription} data={chartData2} config={chartConfig2} />
+            <BarChartFrame title={chartTitleStack[2]} description={chartDescription} data={chartData3} config={chartConfig3} />
+          </div>
+
+          {/* Table Component */}
+          <div className='pt-6'>
+            <TableComponent />
+          </div>
+        </div>
+      </SelectedOptionsProvider>
+    </>
+  );
 }
