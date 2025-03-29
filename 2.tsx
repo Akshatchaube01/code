@@ -1,118 +1,134 @@
-import React, { useEffect, useState } from 'react';
-import NavigationMenuDemo from '@/components/appx/navigationBar';
-import { TabsDemo } from '@/components/appx/tabs';
-import { Component } from '@/components/appx/lineChart_frame';
-import { ChartConfig } from '@/components/frame/ui/chart';
-import ThirdNav from '@/components/appx/thirdNavBar_frame';
-import { SelectedOptionsProvider } from '@/components/appx/context/SelectedOptionsContext';
-import TableComponent from '@/components/appx/table_tabulator';
-import { BarChartFrame } from '@/components/appx/barChart_frame';
+"use client";
 
-// Define TypeScript interfaces
-interface ApiResponse {
-    "Actual Vs Expected": {
-        columns: string[];
-        rows: ApiRow[];
-    };
-}
-
-interface ApiRow {
-    REPORT_DATE: string;
-    METRIC: string;
-    VALUE: number;
-}
-
-interface ChartData {
-    month: string;
-    [key: string]: string | number; // Allow dynamic metric keys
-}
+import React, { useState, useEffect } from "react";
+import NavigationMenuDemo from "@/components/appx/navigationBar";
+import TabsDemo from "@/components/appx/tabs";
+import Component1 from "@/components/appx/lineChart_frame1";
+import Component2 from "@/components/appx/lineChart_frame2";
+import Component3 from "@/components/appx/lineChart_frame3";
+import ThirdNav from "@/components/appx/thirdNavBar_frame";
+import { SelectedOptionsProvider } from "@/components/appx/context/SelectedOptionsContext";
+import TableComponent from "@/components/appx/table_tabulator";
+import axios from "axios";
 
 export default function Page() {
-    const [chartData, setChartData] = useState<ChartData[]>([]);
+  return (
+    <SelectedOptionsProvider>
+      <PageContent />
+    </SelectedOptionsProvider>
+  );
+}
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch('YOUR_BACKEND_API_URL', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        // Include request body if needed
-                    }),
-                });
+function PageContent() {
+  const [chartData1, setChartData1] = useState([]);
+  const [chartData2, setChartData2] = useState([]);
+  const [chartData3, setChartData3] = useState([]);
 
-                const result: ApiResponse = await response.json();
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await axios.get("/api/backtesting"); // Adjust API path if needed
+        const data = response.data;
 
-                // Extract "Actual Vs Expected" data
-                const actualVsExpectedData = result["Actual Vs Expected"]?.rows || [];
+        // Transform Data
+        const transformedData1 = transformData(
+          data["Actual vs Expected"].rows,
+          [
+            "Avg Final PD_BT",
+            "Avg Model Modified PD_BT",
+            "Avg Model PD_BT",
+            "Central Tendency",
+            "Long run default rate",
+            "Observed Default Rate (Last 12 months)",
+          ]
+        );
 
-                const formattedData: ChartData[] = actualVsExpectedData.reduce((acc: ChartData[], row: ApiRow) => {
-                    const { REPORT_DATE, METRIC, VALUE } = row;
+        const transformedData2 = transformData(
+          data["Notching Approach Based on Central Tendency"].rows,
+          [
+            "Final CRR Notch Difference (Final CRR - CT)",
+            "Model CRR Notch Difference (Model CRR - CT)",
+            "Model Modified CRR Notch Difference (Model Modified CRR - CT)",
+          ]
+        );
 
-                    // Find existing entry for this REPORT_DATE
-                    let existingEntry = acc.find(item => item.month === REPORT_DATE);
-                    if (!existingEntry) {
-                        existingEntry = { month: REPORT_DATE };
-                        acc.push(existingEntry);
-                    }
+        const transformedData3 = transformData(
+          data["Notching Approach Based on Long Run"].rows,
+          [
+            "Final CRR Notch Difference (Final CRR - LRADR)",
+            "Model CRR Notch Difference (Model CRR - LRADR)",
+            "Model Modified CRR Notch Difference (Model Modified CRR - LRADR)",
+          ]
+        );
 
-                    // Assign metric value dynamically
-                    existingEntry[METRIC] = VALUE;
-                    return acc;
-                }, []);
+        setChartData1(transformedData1);
+        setChartData2(transformedData2);
+        setChartData3(transformedData3);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
 
-                setChartData(formattedData);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
+    fetchData();
+  }, []);
 
-        fetchData();
-    }, []);
+  // Transformation function to format data
+  function transformData(rows, metrics) {
+    const transformed = [];
 
-    const chartTitle = [
-        "Actual vs Expected - TOTAL",
-        "Notching Approach based on Central Tendency TOTAL",
-        "Notching Approach based on Long Run TOTAL"
-    ];
+    rows.forEach((row) => {
+      const existingEntry = transformed.find((item) => item.month === row["REPORT-DATE"]);
 
-    const chartDescription = "Chart description";
+      if (existingEntry) {
+        existingEntry[row.METRIC] = row.VALUE;
+      } else {
+        transformed.push({
+          month: row["REPORT-DATE"],
+          [row.METRIC]: row.VALUE,
+        });
+      }
+    });
 
-    const chartConfig: ChartConfig = {
-        "Avg Final PD_BT": { label: "Avg Final PD_BT", color: "blue" },
-        "Avg Model Modified PD_BT": { label: "Avg Model Modified PD_BT", color: "red" },
-        "Avg Model PD_BT": { label: "Avg Model PD_BT", color: "green" },
-        "Central Tendency": { label: "Central Tendency", color: "purple" },
-        "Long run default rate": { label: "Long Run Default Rate", color: "orange" },
-        "Observed Default Rate (Last 12 months)": { label: "Observed Default Rate", color: "brown" }
-    };
+    return transformed;
+  }
 
-    return (
-        <>
-            <div>
-                <NavigationMenuDemo />
-                <TabsDemo />
-            </div>
+  const chartTitle = [
+    "Actual vs Expected TOTAL",
+    "Notching Approach Based on Central Tendency - TOTAL",
+    "Notching Approach Based on Long Run TOTAL",
+  ];
 
-            <SelectedOptionsProvider>
-                <div className="size-screen w-full h-full flex flex-col gap-1 p-1">
-                    <div className='mt-0'>
-                        <ThirdNav />
-                    </div>
+  const chartDescription = "Chart description";
 
-                    <div className='flex w-full h-full flex-row pd-4 gap-x-5'>
-                        <Component title={chartTitle[0]} description={chartDescription} data={chartData} config={chartConfig} />
-                        <Component title={chartTitle[1]} description={chartDescription} data={chartData} config={chartConfig} />
-                        <Component title={chartTitle[2]} description={chartDescription} data={chartData} config={chartConfig} />
-                    </div>
+  return (
+    <>
+      <NavigationMenuDemo />
+      <TabsDemo />
+      <ThirdNav />
 
-                    <div className='pt-6'>
-                        <TableComponent />
-                    </div>
-                </div>
-            </SelectedOptionsProvider>
-        </>
-    );
+      <div className="size-screen w-full h-full flex flex-col gap-1 p-1">
+        <div className="flex w-full h-full flex-row p-4 gap-x-5">
+          <Component1
+            title={chartTitle[0]}
+            description={chartDescription}
+            data={chartData1}
+          />
+          <Component2
+            title={chartTitle[1]}
+            description={chartDescription}
+            data={chartData2}
+          />
+          <Component3
+            title={chartTitle[2]}
+            description={chartDescription}
+            data={chartData3}
+          />
+        </div>
+
+        <div className="pt-6">
+          <TableComponent />
+        </div>
+      </div>
+    </>
+  );
 }
