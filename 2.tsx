@@ -1,86 +1,99 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import NavigationMenuDemo from "@/components/appx/navigationBar";
-import TabsDemo from "@/components/appx/tabs";
-import { LineChartComponent } from "@/components/appx/lineChart_cyclicality_frame";
-import ThirdNav from "@/components/appx/thirdNavBar_frame";
-import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptions";
-import TableComponent from "@/components/appx/table_cyclicality_frame";
+import React, { useEffect, useState } from 'react';
+import NavigationMenuDemo from '@/components/appx/navigationBar';
+import { TabsDemo } from '@/components/appx/tabs';
+import { Component } from '@/components/appx/lineChart_frame';
+import { ChartConfig } from '@/components/frame/ui/chart';
+import ThirdNav from '@/components/appx/thirdNavBar_frame';
+import { SelectedOptionsProvider } from '@/components/appx/context/SelectedOptionsContext';
+import TableComponent from '@/components/appx/table_tabulator';
+import { BarChartFrame } from '@/components/appx/barChart_frame';
 
 export default function Page() {
-    return (
-        <SelectedOptionsProvider>
-            <PageContent />
-        </SelectedOptionsProvider>
-    );
-}
-
-function PageContent() {
-    const { selectedOptions } = useSelectedOptions();
-    const [longRunData, setLongRunData] = useState<any[]>([]);
-    const [sdData, setSdData] = useState<any[]>([]);
-    const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
-    const [tableSDData, setTableSDData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [chartData, setChartData] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!selectedOptions) return;
-            setLoading(true);
             try {
-                setError(null);
-                const response = await axios.post(
-                    "http://127.0.0.1:8000/cyclicality",
-                    JSON.stringify(selectedOptions),
-                    { headers: { "Content-Type": "application/json" } }
-                );
+                const response = await fetch('YOUR_BACKEND_API_URL', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        // Include request body if needed
+                    }),
+                });
 
-                const data = response.data;
-                const longRunFiltered = data["Cyclicality: Long run"]?.rows || [];
-                const sdFiltered = data["Cyclicality: SD (Standard Deviation)"]?.rows || [];
+                const result = await response.json();
 
-                const formatTableData = (data: any[], metric: string) => {
-                    return data
-                        .filter((row) => row.METRIC === metric)
-                        .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-                        .map((row) => ({
-                            quarter: row.REPORT_DATE,
-                            model: row.MODEL,
-                            final: row.VALUE
-                        }));
-                };
+                // Process API response to extract the required chart data
+                const actualVsExpectedData = result["Actual Vs Expected"]?.rows || [];
 
-                setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
-                setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
-            } catch (err) {
-                console.error(err);
-                setError("Failed to load data");
-            } finally {
-                setLoading(false);
+                const formattedData = actualVsExpectedData.reduce((acc, row) => {
+                    const { REPORT_DATE, METRIC, VALUE } = row;
+
+                    // Find existing entry for this REPORT_DATE
+                    let existingEntry = acc.find(item => item.month === REPORT_DATE);
+                    if (!existingEntry) {
+                        existingEntry = { month: REPORT_DATE };
+                        acc.push(existingEntry);
+                    }
+
+                    // Map metrics dynamically
+                    existingEntry[METRIC] = VALUE;
+                    return acc;
+                }, []);
+
+                setChartData(formattedData);
+            } catch (error) {
+                console.error('Error fetching data:', error);
             }
         };
 
         fetchData();
-    }, [selectedOptions]);
+    }, []);
+
+    const chartTitle = [
+        "Actual vs Expected - TOTAL",
+        "Notching Approach based on Central Tendency TOTAL",
+        "Notching Approach based on Long Run TOTAL"
+    ];
+
+    const chartDescription = "Chart description";
+
+    const chartConfig: ChartConfig = {
+        "Avg Final PD_BT": { label: "Avg Final PD_BT", color: "blue" },
+        "Avg Model Modified PD_BT": { label: "Avg Model Modified PD_BT", color: "red" },
+        "Avg Model PD_BT": { label: "Avg Model PD_BT", color: "green" },
+        "Central Tendency": { label: "Central Tendency", color: "purple" },
+        "Long run default rate": { label: "Long Run Default Rate", color: "orange" },
+        "Observed Default Rate (Last 12 months)": { label: "Observed Default Rate", color: "brown" }
+    };
 
     return (
-        <div className="w-full h-full flex flex-col p-2 max-w-screen overflow-hidden">
-            <NavigationMenuDemo />
-            <TabsDemo />
-            <ThirdNav />
-
-            {/* Table section */}
-            <div className="flex flex-wrap w-full gap-4 mt-4">
-                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableLongRunData} title="Cyclicality Long Run" />
-                </div>
-                <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-                    <TableComponent data={tableSDData} title="Cyclicality SD (Standard Deviation)" />
-                </div>
+        <>
+            <div>
+                <NavigationMenuDemo />
+                <TabsDemo />
             </div>
-        </div>
+
+            <SelectedOptionsProvider>
+                <div className="size-screen w-full h-full flex flex-col gap-1 p-1">
+                    <div className='mt-0'>
+                        <ThirdNav />
+                    </div>
+
+                    <div className='flex w-full h-full flex-row pd-4 gap-x-5'>
+                        <Component title={chartTitle[0]} description={chartDescription} data={chartData} config={chartConfig} />
+                        <Component title={chartTitle[1]} description={chartDescription} data={chartData} config={chartConfig} />
+                        <Component title={chartTitle[2]} description={chartDescription} data={chartData} config={chartConfig} />
+                    </div>
+
+                    <div className='pt-6'>
+                        <TableComponent />
+                    </div>
+                </div>
+            </SelectedOptionsProvider>
+        </>
     );
 }
