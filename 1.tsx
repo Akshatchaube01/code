@@ -2,12 +2,17 @@
 
 import axios from "axios";
 import React, { useState, useEffect } from "react";
+
 import NavigationMenuDemo from "@/components/appx/navigationBar";
 import TabsDemo from "@/components/appx/tabs";
-import { LineChartComponent } from "@/components/appx/lineChart_cyclicality_frame";
 import ThirdNav from "@/components/appx/thirdNavBar_frame";
+import TableComponent from "@/components/appx/table_tabulator";
+import BarChartFrame from "@/components/appx/barChart_frame";
 import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptionsContext";
-import TableComponent from "@/components/appx/table_cyclicality_frame";
+
+import Component1 from "@/components/appx/lineChart_frame1";
+import Component2 from "@/components/appx/lineChart_frame2";
+import Component3 from "@/components/appx/lineChart_frame3";
 
 export default function Page() {
   return (
@@ -19,10 +24,9 @@ export default function Page() {
 
 function PageContent() {
   const selectedOptions = useSelectedOptions();
-  const [longRunData, setLongRunData] = useState<any[]>([]);
-  const [sdData, setSdData] = useState<any[]>([]);
-  const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
-  const [tableSDData, setTableSDData] = useState<any[]>([]);
+  const [chartData1, setChartData1] = useState<any[]>([]);
+  const [chartData2, setChartData2] = useState<any[]>([]);
+  const [chartData3, setChartData3] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,48 +39,27 @@ function PageContent() {
         setError(null);
         
         const response = await axios.post(
-          "http://127.0.0.1:8000/cyclicality",
+          "http://127.0.0.1:8000/backtesting",
           JSON.stringify(selectedOptions),
           { headers: { "Content-Type": "application/json" } }
         );
-        
-        const data = response.data;
-        
-        const longRunFiltered: any[] = data["Cyclicality: Long run"].rows || [];
-        const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"].rows || [];
 
-        const segregateMetric = (data: any[], metricDesktop: string, metricLaptop: string) => {
-          const desktopData = data.filter((row) => row.METRIC === metricDesktop);
-          const laptopData = data.filter((row) => row.METRIC === metricLaptop);
-          
-          return desktopData.map((desktopRow) => {
-            const matchingLaptopRow = laptopData.find(
-              (laptopRow) => laptopRow.REPORT_DATE === desktopRow.REPORT_DATE
-            );
-            return {
-              month: desktopRow.REPORT_DATE,
-              desktop: desktopRow.VALUE,
-              laptop: matchingLaptopRow ? matchingLaptopRow.VALUE : null,
-            };
-          }).sort((a, b) => (a.month > b.month ? 1 : -1)).slice(-3);
-        };
+        const data = response.data;
+
+        setChartData1(formatChartData(data["Actual Vs Expected"].rows, [
+          "Avg Final PD_BT",
+          "Avg Model Modified PD_BT",
+          "Avg Model PD_BT"
+        ]));
         
-        setLongRunData(segregateMetric(longRunFiltered, "Final Cyclicality Long run", "Model Cyclicality Long run"));
-        setSdData(segregateMetric(sdFiltered, "Final Cyclicality SD", "Model Cyclicality SD"));
+        setChartData2(formatChartData(data["Notching Approach: Central Tendency"].rows, [
+          "Central Tendency",
+          "Long Run Default Rate"
+        ]));
         
-        const formatTableData = (data: any[], metric: string) => {
-          return data
-            .filter((row) => row.METRIC === metric)
-            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
-            .map((row) => ({
-              "Quarters": row.REPORT_DATE,
-              "Model Cyclicality Long Run": row.MODEL,
-              "Final Cyclicality Long Run": row.VALUE,
-            }));
-        };
-        
-        setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
-        setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
+        setChartData3(formatChartData(data["Notching Approach: Long Run"].rows, [
+          "Observed Default Rate"
+        ]));
       } catch (err) {
         console.error(err);
         setError("Failed to load data");
@@ -88,44 +71,37 @@ function PageContent() {
     fetchData();
   }, [selectedOptions]);
 
-  const chartConfig = {
-    longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
-    standardDeviation: { label: "SD (Standard Deviation)", color: "red" }
+  const formatChartData = (data: any[], metrics: string[]) => {
+    return data.filter(row => metrics.includes(row.METRIC))
+               .map(row => ({
+                 month: row.REPORT_DATE,
+                 [row.METRIC]: row.VALUE
+               }));
   };
+
+  const chartTitle = [
+    "Actual vs Expected TOTAL",
+    "Notching Approach based on Central Tendency - TOTAL",
+    "Notching Approach based on Long Run TOTAL"
+  ];
+
+  const chartDescription = "Chart description for Backtesting";
 
   return (
     <div className="w-full h-full flex flex-col p-2 max-w-screen overflow-hidden">
       <NavigationMenuDemo />
       <TabsDemo />
       <ThirdNav />
+
       <div className="flex flex-wrap w-full gap-4 mt-4">
-        {/* Cyclicality: Long run */}
-        <div className="w-full sm:w-[49%] max-w-full">
-          <LineChartComponent
-            title="Cyclicality: Long run"
-            description="Chart for Cyclicality Long Run"
-            data={longRunData}
-            config={chartConfig}
-          />
-        </div>
-        {/* Cyclicality: SD (Standard Deviation) */}
-        <div className="w-full sm:w-[49%] max-w-full">
-          <LineChartComponent
-            title="Cyclicality: SD (Standard Deviation)"
-            description="Chart for Cyclicality SD"
-            data={sdData}
-            config={chartConfig}
-          />
-        </div>
+        <Component1 title={chartTitle[0]} description={chartDescription} data={chartData1} />
+        <Component2 title={chartTitle[1]} description={chartDescription} data={chartData2} />
+        <Component3 title={chartTitle[2]} description={chartDescription} data={chartData3} />
       </div>
-      {/* Table section */}
+
       <div className="flex flex-wrap w-full gap-4 mt-4">
-        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-          <TableComponent data={tableLongRunData} />
-        </div>
-        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-          <TableComponent data={tableSDData} />
-        </div>
+        <TableComponent data={chartData1} />
+        <TableComponent data={chartData2} />
       </div>
     </div>
   );
