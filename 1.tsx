@@ -2,16 +2,12 @@
 
 import axios from "axios";
 import React, { useState, useEffect } from "react";
-
 import NavigationMenuDemo from "@/components/appx/navigationBar";
 import TabsDemo from "@/components/appx/tabs";
-import Component1 from "@/components/appx/lineChart_frame1";
-import Component2 from "@/components/appx/lineChart_frame2";
-import Component3 from "@/components/appx/lineChart_frame3";
+import { LineChartComponent } from "@/components/appx/lineChart_cyclicality_frame";
 import ThirdNav from "@/components/appx/thirdNavBar_frame";
 import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptionsContext";
-import TableComponent from "@/components/appx/table_tabulator";
-import BarChartFrame from "@/components/appx/barChart_frame";
+import TableComponent from "@/components/appx/table_cyclicality_frame";
 
 export default function Page() {
   return (
@@ -23,40 +19,64 @@ export default function Page() {
 
 function PageContent() {
   const selectedOptions = useSelectedOptions();
-
-  const [chartData1, setChartData1] = useState<any[]>([]);
-  const [chartData2, setChartData2] = useState<any[]>([]);
-  const [chartData3, setChartData3] = useState<any[]>([]);
-  const [tableData, setTableData] = useState<any[]>([]);
+  const [longRunData, setLongRunData] = useState<any[]>([]);
+  const [sdData, setSdData] = useState<any[]>([]);
+  const [tableLongRunData, setTableLongRunData] = useState<any[]>([]);
+  const [tableSDData, setTableSDData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!selectedOptions) return;
+    if (!selectedOptions) return;
 
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-
+        
         const response = await axios.post(
-          "http://127.0.0.1:8000/backtesting",
+          "http://127.0.0.1:8000/cyclicality",
           JSON.stringify(selectedOptions),
           { headers: { "Content-Type": "application/json" } }
         );
-
+        
         const data = response.data;
+        
+        const longRunFiltered: any[] = data["Cyclicality: Long run"].rows || [];
+        const sdFiltered: any[] = data["Cyclicality: SD (Standard Deviation)"].rows || [];
 
-        // Extracting and structuring the required data
-        const chart1Filtered = data["Metric1"]?.rows || [];
-        const chart2Filtered = data["Metric2"]?.rows || [];
-        const chart3Filtered = data["Metric3"]?.rows || [];
-
-        setChartData1(formatChartData(chart1Filtered, "avg_final_pd_bt", "avg_model_pd_bt", "avg_model_modified_pd_bt"));
-        setChartData2(formatChartData(chart2Filtered, "Final_CRR_CT", "Model_Modified_CRR_CT", "Model_CRR_CT"));
-        setChartData3(formatChartData(chart3Filtered, "Final_CRR_LRADR", "Model_Modified_CRR_LRADR", "Model_CRR_LRADR"));
-
-        setTableData(formatTableData(chart1Filtered, "avg_final_pd_bt"));
+        const segregateMetric = (data: any[], metricDesktop: string, metricLaptop: string) => {
+          const desktopData = data.filter((row) => row.METRIC === metricDesktop);
+          const laptopData = data.filter((row) => row.METRIC === metricLaptop);
+          
+          return desktopData.map((desktopRow) => {
+            const matchingLaptopRow = laptopData.find(
+              (laptopRow) => laptopRow.REPORT_DATE === desktopRow.REPORT_DATE
+            );
+            return {
+              month: desktopRow.REPORT_DATE,
+              desktop: desktopRow.VALUE,
+              laptop: matchingLaptopRow ? matchingLaptopRow.VALUE : null,
+            };
+          }).sort((a, b) => (a.month > b.month ? 1 : -1)).slice(-3);
+        };
+        
+        setLongRunData(segregateMetric(longRunFiltered, "Final Cyclicality Long run", "Model Cyclicality Long run"));
+        setSdData(segregateMetric(sdFiltered, "Final Cyclicality SD", "Model Cyclicality SD"));
+        
+        const formatTableData = (data: any[], metric: string) => {
+          return data
+            .filter((row) => row.METRIC === metric)
+            .sort((a, b) => (a.REPORT_DATE > b.REPORT_DATE ? 1 : -1))
+            .map((row) => ({
+              "Quarters": row.REPORT_DATE,
+              "Model Cyclicality Long Run": row.MODEL,
+              "Final Cyclicality Long Run": row.VALUE,
+            }));
+        };
+        
+        setTableLongRunData(formatTableData(longRunFiltered, "Final Cyclicality Long run"));
+        setTableSDData(formatTableData(sdFiltered, "Final Cyclicality SD"));
       } catch (err) {
         console.error(err);
         setError("Failed to load data");
@@ -64,44 +84,13 @@ function PageContent() {
         setLoading(false);
       }
     };
-
+    
     fetchData();
   }, [selectedOptions]);
 
-  const formatChartData = (data: any[], metric1: string, metric2: string, metric3: string) => {
-    return data
-      .map((row) => ({
-        month: row.REPORT_DATE,
-        [metric1]: row[metric1],
-        [metric2]: row[metric2],
-        [metric3]: row[metric3],
-      }))
-      .sort((a, b) => (a.month > b.month ? 1 : -1));
-  };
-
-  const formatTableData = (data: any[], metric: string) => {
-    return data.map((row) => ({
-      month: row.REPORT_DATE,
-      value: row[metric],
-    }));
-  };
-
-  const chartConfig1 = {
-    avg_final_pd_bt: { label: "Avg Final PD_BT", color: "rgb(12, 74, 110)" },
-    avg_model_pd_bt: { label: "Avg Model PD_BT", color: "green" },
-    avg_model_modified_pd_bt: { label: "Avg Model Modified PD_BT", color: "red" },
-  };
-
-  const chartConfig2 = {
-    Final_CRR_CT: { label: "Final CRR CT", color: "rgb(12, 74, 110)" },
-    Model_Modified_CRR_CT: { label: "Model Modified CRR CT", color: "red" },
-    Model_CRR_CT: { label: "Model CRR CT", color: "green" },
-  };
-
-  const chartConfig3 = {
-    Final_CRR_LRADR: { label: "Final CRR LRADR", color: "rgb(12, 74, 110)" },
-    Model_Modified_CRR_LRADR: { label: "Model Modified CRR LRADR", color: "red" },
-    Model_CRR_LRADR: { label: "Model CRR LRADR", color: "green" },
+  const chartConfig = {
+    longRun: { label: "Cyclicality Long Run", color: "rgb(12,74,110)" },
+    standardDeviation: { label: "SD (Standard Deviation)", color: "red" }
   };
 
   return (
@@ -109,28 +98,33 @@ function PageContent() {
       <NavigationMenuDemo />
       <TabsDemo />
       <ThirdNav />
-
       <div className="flex flex-wrap w-full gap-4 mt-4">
-        {/* Chart 1 */}
+        {/* Cyclicality: Long run */}
         <div className="w-full sm:w-[49%] max-w-full">
-          <Component1 title="Chart 1" description="Description for Chart 1" data={chartData1} config={chartConfig1} />
+          <LineChartComponent
+            title="Cyclicality: Long run"
+            description="Chart for Cyclicality Long Run"
+            data={longRunData}
+            config={chartConfig}
+          />
         </div>
-
-        {/* Chart 2 */}
+        {/* Cyclicality: SD (Standard Deviation) */}
         <div className="w-full sm:w-[49%] max-w-full">
-          <Component2 title="Chart 2" description="Description for Chart 2" data={chartData2} config={chartConfig2} />
-        </div>
-
-        {/* Chart 3 */}
-        <div className="w-full sm:w-[49%] max-w-full">
-          <Component3 title="Chart 3" description="Description for Chart 3" data={chartData3} config={chartConfig3} />
+          <LineChartComponent
+            title="Cyclicality: SD (Standard Deviation)"
+            description="Chart for Cyclicality SD"
+            data={sdData}
+            config={chartConfig}
+          />
         </div>
       </div>
-
-      {/* Table Section */}
+      {/* Table section */}
       <div className="flex flex-wrap w-full gap-4 mt-4">
         <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
-          <TableComponent data={tableData} />
+          <TableComponent data={tableLongRunData} />
+        </div>
+        <div className="w-full sm:w-[49%] max-w-full overflow-hidden">
+          <TableComponent data={tableSDData} />
         </div>
       </div>
     </div>
