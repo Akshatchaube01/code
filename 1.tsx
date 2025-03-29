@@ -13,6 +13,11 @@ import { SelectedOptionsProvider, useSelectedOptions } from '@/components/appx/c
 import ThirdNav from '@/components/appx/thirdNavBar_frame';
 import TableComponent from '@/components/appx/table_tabulator';
 
+interface ChartData {
+    month: string;
+    [key: string]: number | string;
+}
+
 export default function Page() {
     return (
         <SelectedOptionsProvider>
@@ -24,8 +29,8 @@ export default function Page() {
 function PageContent() {
     const { selectedOptions } = useSelectedOptions();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [chartData, setChartData] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [chartData, setChartData] = useState<Record<string, any> | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -51,18 +56,20 @@ function PageContent() {
     if (error) return <div>Error: {error}</div>;
     if (!chartData) return null;
 
-    const extractData = (category) => {
-        return chartData[category]?.rows.reduce((acc, row) => {
+    const extractData = (category: string): ChartData[] => {
+        const rawData = chartData[category]?.rows.reduce((acc: Record<string, any>, row: any) => {
             const { "REPORT-DATE": date, METRIC: metric, VALUE: value } = row;
             if (!acc[date]) acc[date] = { month: date };
             acc[date][metric] = value;
             return acc;
         }, {});
+
+        return Object.values(rawData) as ChartData[];
     };
 
-    const chartData1 = Object.values(extractData("Actual vs Expected") || {});
-    const chartData2 = Object.values(extractData("Notching Approach Based on Central Tendency") || {});
-    const chartData3 = Object.values(extractData("Notching Approach Based on Long Run") || {});
+    const chartData1: ChartData[] = extractData("Actual vs Expected");
+    const chartData2: ChartData[] = extractData("Notching Approach Based on Central Tendency");
+    const chartData3: ChartData[] = extractData("Notching Approach Based on Long Run");
 
     return (
         <>
