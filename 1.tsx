@@ -1,20 +1,31 @@
-useEffect(() => {
-    const fetchData = async () => {
-        if (!selectedOptions) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await axios.post("http://127.0.0.1:8000/backtesting", selectedOptions, {
-                headers: { "Content-Type": "application/json" }
-            });
-            console.log("API Response:", response.data); // Log the response
-            setChartData(response.data);
-        } catch (err) {
-            console.error(err);
-            setError("Failed to load data");
-        } finally {
-            setLoading(false);
+const extractData = (category: string): ChartData[] => {
+    const rawData = chartData[category]?.rows || [];
+
+    const filteredData = rawData.filter(row => {
+        const quarter = row["REPORT_DATE"];
+        return quarter >= "2023 Q4" && quarter <= "2024 Q4";
+    });
+
+    const formattedData: Record<string, any> = {};
+
+    filteredData.forEach(row => {
+        const month = row["REPORT_DATE"];
+        const metric = row["METRIC"];
+        const value = row["VALUE"] ?? 0;
+
+        if (!formattedData[month]) {
+            formattedData[month] = { month };
         }
-    };
-    fetchData();
-}, [selectedOptions]);
+        formattedData[month][metric] = value;
+    });
+
+    return Object.values(formattedData).map(entry => ({
+        month: entry.month,
+        avg_final_pd_bt: entry["avg_final_pd_bt"] ?? 0,
+        avg_model_pd_bt: entry["avg_model_pd_bt"] ?? 0,
+        avg_model_modified_pd_bt: entry["avg_model_modified_pd_bt"] ?? 0,
+        central_tendency: entry["central_tendency"] ?? 0,
+        long_run_default_rate: entry["long_run_default_rate"] ?? 0,
+        obv_def_rate: entry["obv_def_rate"] ?? 0,
+    }));
+};
