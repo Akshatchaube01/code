@@ -8,24 +8,19 @@ import { TabsDemo } from '@/components/appx/tabs';
 import { Component1 } from '@/components/appx/lineChart_frame1';
 import { Component2 } from '@/components/appx/lineChart_frame2';
 import { Component3 } from '@/components/appx/lineChart_frame3';
+import { ChartConfig } from '@/components/frame/ui/chart';
 import { SelectedOptionsProvider, useSelectedOptions } from '@/components/appx/context/SelectedOptions';
 import ThirdNav from '@/components/appx/thirdNavBar_frame';
 import TableComponent from '@/components/appx/table_tabulator';
 
 interface ChartData {
     month: string;
-    avg_final_pd_bt?: number;
-    avg_model_pd_bt?: number;
-    avg_model_modified_pd_bt?: number;
-    central_tendency?: number;
-    long_run_default_rate?: number;
-    obv_def_rate?: number;
-    Final_CRR_CT?: number;
-    Model_Modified_CRR_CT?: number;
-    Model_CRR_CT?: number;
-    Final_CRR_LRADR?: number;
-    Model_Modified_CRR_LRADR?: number;
-    Model_CRR_LRADR?: number;
+    avg_final_pd_bt: number;
+    avg_model_pd_bt: number;
+    avg_model_modified_pd_bt: number;
+    central_tendency: number;
+    long_run_default_rate: number;
+    obv_def_rate: number;
 }
 
 export default function Page() {
@@ -66,30 +61,30 @@ function PageContent() {
     if (error) return <div>Error: {error}</div>;
     if (!chartData) return null;
 
-    const extractData = (category: string, fields: string[]): ChartData[] => {
+    const extractData = (category: string): ChartData[] => {
         const rawData = chartData[category]?.rows.reduce((acc: Record<string, any>, row: any) => {
-            const { "REPORT-DATE": date, METRIC: metric, VALUE: value } = row;
-            if (!acc[date]) acc[date] = { month: date };
-            if (fields.includes(metric)) {
-                acc[date][metric] = value;
+            const date = row["REPORT-DATE"] || "Unknown";
+            if (!acc[date]) {
+                acc[date] = {
+                    month: date,
+                    avg_final_pd_bt: 0,
+                    avg_model_pd_bt: 0,
+                    avg_model_modified_pd_bt: 0,
+                    central_tendency: 0,
+                    long_run_default_rate: 0,
+                    obv_def_rate: 0,
+                };
             }
+            acc[date][row.METRIC] = row.VALUE || 0;
             return acc;
         }, {});
 
         return Object.values(rawData) as ChartData[];
     };
 
-    const chartData1: ChartData[] = extractData("Actual vs Expected", [
-        "avg_final_pd_bt", "avg_model_pd_bt", "avg_model_modified_pd_bt", "central_tendency", "long_run_default_rate", "obv_def_rate"
-    ]);
-    
-    const chartData2: ChartData[] = extractData("Notching Approach Based on Central Tendency", [
-        "Final_CRR_CT", "Model_Modified_CRR_CT", "Model_CRR_CT"
-    ]);
-    
-    const chartData3: ChartData[] = extractData("Notching Approach Based on Long Run", [
-        "Final_CRR_LRADR", "Model_Modified_CRR_LRADR", "Model_CRR_LRADR"
-    ]);
+    const chartData1: ChartData[] = extractData("Actual vs Expected");
+    const chartData2: ChartData[] = extractData("Notching Approach Based on Central Tendency");
+    const chartData3: ChartData[] = extractData("Notching Approach Based on Long Run");
 
     return (
         <>
