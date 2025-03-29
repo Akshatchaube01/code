@@ -8,19 +8,18 @@ import { TabsDemo } from '@/components/appx/tabs';
 import { Component1 } from '@/components/appx/lineChart_frame1';
 import { Component2 } from '@/components/appx/lineChart_frame2';
 import { Component3 } from '@/components/appx/lineChart_frame3';
-import { ChartConfig } from '@/components/frame/ui/chart';
 import { SelectedOptionsProvider, useSelectedOptions } from '@/components/appx/context/SelectedOptions';
 import ThirdNav from '@/components/appx/thirdNavBar_frame';
 import TableComponent from '@/components/appx/table_tabulator';
 
 interface ChartData {
     month: string;
-    avg_final_pd_bt: number;
-    avg_model_pd_bt: number;
-    avg_model_modified_pd_bt: number;
-    central_tendency: number;
-    long_run_default_rate: number;
-    obv_def_rate: number;
+    avg_final_pd_bt?: number;
+    avg_model_pd_bt?: number;
+    avg_model_modified_pd_bt?: number;
+    central_tendency?: number;
+    long_run_default_rate?: number;
+    obv_def_rate?: number;
 }
 
 export default function Page() {
@@ -62,20 +61,13 @@ function PageContent() {
     if (!chartData) return null;
 
     const extractData = (category: string): ChartData[] => {
-        const rawData = chartData[category]?.rows.reduce((acc: Record<string, any>, row: any) => {
-            const date = row["REPORT-DATE"] || "Unknown";
-            if (!acc[date]) {
-                acc[date] = {
-                    month: date,
-                    avg_final_pd_bt: 0,
-                    avg_model_pd_bt: 0,
-                    avg_model_modified_pd_bt: 0,
-                    central_tendency: 0,
-                    long_run_default_rate: 0,
-                    obv_def_rate: 0,
-                };
-            }
-            acc[date][row.METRIC] = row.VALUE || 0;
+        const rows = chartData[category]?.rows;
+        if (!rows) return [];
+
+        const rawData = rows.reduce((acc: Record<string, any>, row: any) => {
+            const { "REPORT-DATE": date, METRIC: metric, VALUE: value } = row;
+            if (!acc[date]) acc[date] = { month: date };
+            acc[date][metric] = value;
             return acc;
         }, {});
 
