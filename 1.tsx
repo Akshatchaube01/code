@@ -1,104 +1,111 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import axios from "axios";
+import React, { useState, useEffect } from "react";
 import NavigationMenuDemo from "@/components/appx/navigationBar";
 import { TabsDemo } from "@/components/appx/tabs";
-import { Component1 } from "@/components/appx/lineChart_frame1";
-import { Component2 } from "@/components/appx/lineChart_frame2";
-import { Component3 } from "@/components/appx/lineChart_frame3";
+import { LineChartComponent } from "@/components/appx/lineChart_frame1";
 import ThirdNav from "@/components/appx/thirdNavBar_frame";
-import TableComponent from "@/components/appx/table_tabulator";
 import { SelectedOptionsProvider, useSelectedOptions } from "@/components/appx/context/SelectedOptions";
+import TableComponent from "@/components/appx/table_tabulator";
 
 interface ChartData {
-  month: string;
-  avg_final_pd_bt: number;
-  avg_model_pd_bt: number;
-  avg_model_modified_pd_bt: number;
-  central_tendency: number;
-  long_run_default_rate: number;
-  obv_def_rate: number;
+    month: string;
+    avg_final_pd_bt: number;
+    avg_model_pd_bt: number;
+    avg_model_modified_pd_bt: number;
+    central_tendency: number;
+    long_run_default_rate: number;
+    obv_def_rate: number;
 }
 
 export default function Page() {
-  return (
-    <SelectedOptionsProvider>
-      <PageContent />
-    </SelectedOptionsProvider>
-  );
+    return (
+        <SelectedOptionsProvider>
+            <PageContent />
+        </SelectedOptionsProvider>
+    );
 }
 
 function PageContent() {
-  const { selectedOptions } = useSelectedOptions();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [chartData, setChartData] = useState<Record<string, any> | null>(null);
+    const { selectedOptions } = useSelectedOptions();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [chartData, setChartData] = useState<Record<string, any> | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!selectedOptions) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.post("http://127.0.0.1:8000/backtesting", selectedOptions, {
-          headers: { "Content-Type": "application/json" },
-        });
-        setChartData(response.data);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load data");
-      } finally {
-        setLoading(false);
-      }
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!selectedOptions) return;
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await axios.post("http://127.0.0.1:8000/backtesting", selectedOptions, {
+                    headers: { "Content-Type": "application/json" }
+                });
+                setChartData(response.data);
+            } catch (err) {
+                console.error(err);
+                setError("Failed to load data");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [selectedOptions]);
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error}</div>;
+    if (!chartData) return null;
+
+    const extractData = (category: string): ChartData[] => {
+        const rawData = chartData[category]?.rows.reduce((acc: Record<string, any>, row: any) => {
+            const { "REPORT-DATE": date, VALUE: value, METRIC: metric } = row;
+            if (!acc[date]) acc[date] = { month: date };
+            acc[date][metric] = value || 0;
+            return acc;
+        }, {});
+
+        return Object.values(rawData).map((entry: any) => ({
+            month: entry.month,
+            avg_final_pd_bt: entry["Final PD BT"] || 0,
+            avg_model_pd_bt: entry["Model PD BT"] || 0,
+            avg_model_modified_pd_bt: entry["Model Modified PD BT"] || 0,
+            central_tendency: entry["Central Tendency"] || 0,
+            long_run_default_rate: entry["Long Run Default Rate"] || 0,
+            obv_def_rate: entry["Obv Def Rate"] || 0,
+        }));
     };
-    fetchData();
-  }, [selectedOptions]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!chartData) return null;
+    const chartData1: ChartData[] = extractData("Actual vs Expected");
+    const chartData2: ChartData[] = extractData("Notching Approach Based on Central Tendency");
+    const chartData3: ChartData[] = extractData("Notching Approach Based on Long Run");
 
-  const extractData = (category: string): ChartData[] => {
-    const rawData = chartData[category]?.rows.reduce(
-      (acc: Record<string, ChartData>, row: any) => {
-        const { "REPORT-DATE": date, METRIC: metric, VALUE: value } = row;
-        if (!acc[date]) {
-          acc[date] = {
-            month: date,
-            avg_final_pd_bt: 0,
-            avg_model_pd_bt: 0,
-            avg_model_modified_pd_bt: 0,
-            central_tendency: 0,
-            long_run_default_rate: 0,
-            obv_def_rate: 0,
-          };
+    const chartConfig = {
+        xAxisKey: "month",
+        yAxisKeys: ["avg_final_pd_bt", "avg_model_pd_bt", "avg_model_modified_pd_bt", "central_tendency", "long_run_default_rate", "obv_def_rate"],
+        colors: {
+            avg_final_pd_bt: "rgb(12,74,110)",
+            avg_model_pd_bt: "red",
+            avg_model_modified_pd_bt: "green",
+            central_tendency: "blue",
+            long_run_default_rate: "orange",
+            obv_def_rate: "purple"
         }
-        acc[date][metric as keyof ChartData] = value ?? 0;
-        return acc;
-      },
-      {}
+    };
+
+    return (
+        <>
+            <NavigationMenuDemo />
+            <TabsDemo />
+            <ThirdNav />
+            <div className='w-full h-full flex flex-col gap-4 p-4'>
+                <div className='flex flex-row gap-5'>
+                    <LineChartComponent title="Actual vs Expected" description="Chart for Actual vs Expected" data={chartData1} config={chartConfig} />
+                    <LineChartComponent title="Notching Approach Based on Central Tendency" description="Chart for Central Tendency" data={chartData2} config={chartConfig} />
+                    <LineChartComponent title="Notching Approach Based on Long Run" description="Chart for Long Run" data={chartData3} config={chartConfig} />
+                </div>
+                <TableComponent />
+            </div>
+        </>
     );
-    return Object.values(rawData);
-  };
-
-  const chartData1: ChartData[] = extractData("Actual vs Expected");
-  const chartData2: ChartData[] = extractData("Notching Approach Based on Central Tendency");
-  const chartData3: ChartData[] = extractData("Notching Approach Based on Long Run");
-
-  return (
-    <>
-      <NavigationMenuDemo />
-      <TabsDemo />
-      <ThirdNav />
-      <div className="w-full h-full flex flex-col gap-4 p-4">
-        <div className="flex flex-row gap-5">
-          <Component1 title="Actual vs Expected" description="Chart description" data={chartData1} />
-          <Component2 title="Notching Approach Based on Central Tendency" description="Chart description" data={chartData2} />
-          <Component3 title="Notching Approach Based on Long Run" description="Chart description" data={chartData3} />
-        </div>
-        <TableComponent />
-      </div>
-    </>
-  );
 }
