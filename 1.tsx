@@ -1,31 +1,91 @@
-const extractData = (category: string): ChartData[] => {
-    const rawData = chartData[category]?.rows || [];
-
-    const filteredData = rawData.filter(row => {
-        const quarter = row["REPORT_DATE"];
-        return quarter >= "2023 Q4" && quarter <= "2024 Q4";
-    });
-
-    const formattedData: Record<string, any> = {};
-
-    filteredData.forEach(row => {
-        const month = row["REPORT_DATE"];
-        const metric = row["METRIC"];
-        const value = row["VALUE"] ?? 0;
-
-        if (!formattedData[month]) {
-            formattedData[month] = { month };
-        }
-        formattedData[month][metric] = value;
-    });
-
-    return Object.values(formattedData).map(entry => ({
-        month: entry.month,
-        avg_final_pd_bt: entry["avg_final_pd_bt"] ?? 0,
-        avg_model_pd_bt: entry["avg_model_pd_bt"] ?? 0,
-        avg_model_modified_pd_bt: entry["avg_model_modified_pd_bt"] ?? 0,
-        central_tendency: entry["central_tendency"] ?? 0,
-        long_run_default_rate: entry["long_run_default_rate"] ?? 0,
-        obv_def_rate: entry["obv_def_rate"] ?? 0,
-    }));
+type DataItem = {
+  "REPORT-DATE": string;
+  "METRIC": string;
+  "VALUE": number;
 };
+
+const data: DataItem[] = [
+  {
+    "REPORT-DATE": "2023-04",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 1
+  },
+  {
+    "REPORT-DATE": "2023-04",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 2
+  },
+  {
+    "REPORT-DATE": "2023-05",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 3
+  },
+  {
+    "REPORT-DATE": "2023-05",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 4
+  },
+  {
+    "REPORT-DATE": "2023-06",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 5
+  },
+  {
+    "REPORT-DATE": "2023-06",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 6
+  },
+  {
+    "REPORT-DATE": "2023-07",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 7
+  },
+  {
+    "REPORT-DATE": "2023-07",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 8
+  },
+  {
+    "REPORT-DATE": "2023-08",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 9
+  },
+  {
+    "REPORT-DATE": "2023-08",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 10
+  },
+  {
+    "REPORT-DATE": "2023-09",
+    "METRIC": "Avg Final PD_BT",
+    "VALUE": 11
+  },
+  {
+    "REPORT-DATE": "2023-09",
+    "METRIC": "Avg Model Modified PD_BT",
+    "VALUE": 12
+  }
+];
+
+function transformDataByDate(data: DataItem[]): { [key: string]: any }[] {
+  const result: { [key: string]: any }[] = [];
+  const dateMap: { [key: string]: { [key: string]: any } } = {};
+
+  data.forEach(item => {
+    const date = item["REPORT-DATE"];
+    if (!dateMap[date]) {
+      dateMap[date] = { month: date };
+    }
+    const metricKey = item["METRIC"].toLowerCase().replace(/ /g, "_");
+    dateMap[date][metricKey] = item["VALUE"];
+  });
+
+  for (const key in dateMap) {
+    result.push(dateMap[key]);
+  }
+
+  return result;
+}
+
+const transformedData = transformDataByDate(data);
+console.log(transformedData);
