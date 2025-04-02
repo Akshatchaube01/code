@@ -1,91 +1,123 @@
-type DataItem = {
-  "REPORT-DATE": string;
-  "METRIC": string;
-  "VALUE": number;
-};
+"use client";
 
-const data: DataItem[] = [
-  {
-    "REPORT-DATE": "2023-04",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 1
-  },
-  {
-    "REPORT-DATE": "2023-04",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 2
-  },
-  {
-    "REPORT-DATE": "2023-05",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 3
-  },
-  {
-    "REPORT-DATE": "2023-05",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 4
-  },
-  {
-    "REPORT-DATE": "2023-06",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 5
-  },
-  {
-    "REPORT-DATE": "2023-06",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 6
-  },
-  {
-    "REPORT-DATE": "2023-07",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 7
-  },
-  {
-    "REPORT-DATE": "2023-07",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 8
-  },
-  {
-    "REPORT-DATE": "2023-08",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 9
-  },
-  {
-    "REPORT-DATE": "2023-08",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 10
-  },
-  {
-    "REPORT-DATE": "2023-09",
-    "METRIC": "Avg Final PD_BT",
-    "VALUE": 11
-  },
-  {
-    "REPORT-DATE": "2023-09",
-    "METRIC": "Avg Model Modified PD_BT",
-    "VALUE": 12
-  }
-];
+import { Download, TrendingUp, CartesianGrid, Line, LineChart, XAxis, Legend, Brush, YAxis } from "recharts";
+import { useState, useRef, useEffect } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { Button } from "@/components/frame/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/frame/ui/dialog";
+import { Expand, Shrink, RotateCcw } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/frame/ui/card";
+import { ChartConfig, ChartTooltip, ChartTooltipContent } from "@/components/frame/ui/chart";
+import screenfull from "screenfull";
 
-function transformDataByDate(data: DataItem[]): { [key: string]: any }[] {
-  const result: { [key: string]: any }[] = [];
-  const dateMap: { [key: string]: { [key: string]: any } } = {};
+export const description = "A linear line chart";
 
-  data.forEach(item => {
-    const date = item["REPORT-DATE"];
-    if (!dateMap[date]) {
-      dateMap[date] = { month: date };
-    }
-    const metricKey = item["METRIC"].toLowerCase().replace(/ /g, "_");
-    dateMap[date][metricKey] = item["VALUE"];
-  });
-
-  for (const key in dateMap) {
-    result.push(dateMap[key]);
-  }
-
-  return result;
+interface ChartData {
+  month: string;
+  [key: string]: number; // Dynamic keys
 }
 
-const transformedData = transformDataByDate(data);
-console.log(transformedData);
+interface LineChartProps {
+  title: string;
+  description: string;
+  config: ChartConfig;
+  data: any[]; // Incoming data with { label, value }
+}
+
+export function Component1({ title, description, data, config }: LineChartProps) {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [downloadType, setDownloadType] = useState<"svg" | "png" | "pdf">("svg");
+  const [brushStartIndex, setBrushStartIndex] = useState(0);
+  const [brushEndIndex, setBrushEndIndex] = useState(data.length - 1);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
+
+  // Format incoming data to extract only `value`
+  const formattedData: ChartData[] = data.map(({ month, ...rest }) => {
+    const entry: ChartData = { month };
+    Object.keys(rest).forEach((key) => {
+      entry[key] = rest[key].value; // Extract numeric value
+    });
+    return entry;
+  });
+
+  // Extract unique keys dynamically
+  const allKeys = new Set<string>();
+  formattedData.forEach((entry) => {
+    Object.keys(entry).forEach((key) => {
+      if (key !== "month") allKeys.add(key);
+    });
+  });
+  const allKeysArray = Array.from(allKeys);
+
+  // State for toggling series visibility
+  const [hiddenSeries, setHiddenSeries] = useState<{ [key: string]: boolean }>(
+    Object.fromEntries(allKeysArray.map((key) => [key, false]))
+  );
+
+  // Processed data - hide series if toggled off
+  const processedData = formattedData.map((entry) => {
+    const updatedEntry: any = { month: entry.month };
+    allKeysArray.forEach((key) => {
+      updatedEntry[key] = hiddenSeries[key] ? undefined : entry[key];
+    });
+    return updatedEntry;
+  });
+
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <div className="flex justify-center mt-4">
+        {payload.map((entry: any) => {
+          const isHidden = hiddenSeries[entry.value];
+          return (
+            <span
+              key={entry.value}
+              className="cursor-pointer text-sm font-medium mx-4 transition-all"
+              style={{
+                color: isHidden ? "gray" : entry.color,
+                textDecoration: isHidden ? "line-through" : "none",
+              }}
+              onClick={() =>
+                setHiddenSeries((prev) => ({
+                  ...prev,
+                  [entry.value]: !prev[entry.value],
+                }))
+              }
+            >
+              {entry.value}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <Card ref={cardRef} className="p-4 w-full max-w-3xl mx-auto">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent ref={chartAreaRef}>
+        <LineChart data={processedData} width={600} height={400} margin={{ left: 12, right: 12 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+          <YAxis type="number" domain={["auto", "auto"]} />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+          <Legend content={renderLegend} />
+          {allKeysArray.map((key, index) => (
+            <Line
+              key={key}
+              dataKey={key}
+              type="linear"
+              stroke={`hsl(${(index * 360) / allKeysArray.length}, 70%, 50%)`}
+              strokeWidth={2}
+            />
+          ))}
+        </LineChart>
+      </CardContent>
+    </Card>
+  );
+}
