@@ -3,7 +3,7 @@
 import { CartesianGrid, Line, LineChart, XAxis, Legend, YAxis } from "recharts";
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/frame/ui/card";
-import { ChartTooltip, ChartTooltipContent } from "@/components/frame/ui/chart";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/frame/ui/chart";
 
 export const description = "A linear line chart";
 
@@ -17,14 +17,15 @@ interface ChartData {
 interface LineChartProps {
   title: string;
   description: string;
+  config: ChartConfig;
   data: ChartData[];
 }
 
-export function Component1({ title, description, data }: LineChartProps) {
+export function Component1({ title, description, config, data }: LineChartProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
 
-  // Extract labels and values
+  // Format incoming data (extract numeric values)
   const formattedData = data.map(({ month, ...rest }) => {
     const entry: any = { month };
     Object.keys(rest).forEach((key) => {
@@ -33,7 +34,7 @@ export function Component1({ title, description, data }: LineChartProps) {
     return entry;
   });
 
-  // Map keys to labels
+  // Map keys to labels for the legend
   const keyToLabelMap: { [key: string]: string } = {};
   data.forEach(({ month, ...rest }) => {
     Object.keys(rest).forEach((key) => {
@@ -41,7 +42,7 @@ export function Component1({ title, description, data }: LineChartProps) {
     });
   });
 
-  // Extract all keys dynamically
+  // Extract unique keys dynamically
   const allKeys = Object.keys(keyToLabelMap);
 
   // Manage visibility of each dataset
@@ -96,22 +97,25 @@ export function Component1({ title, description, data }: LineChartProps) {
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent ref={chartAreaRef}>
-        <LineChart data={processedData} width={600} height={400} margin={{ left: 12, right: 12 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-          <YAxis type="number" domain={["auto", "auto"]} />
-          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-          <Legend content={renderLegend} />
-          {allKeys.map((key, index) => (
-            <Line
-              key={key}
-              dataKey={key}
-              type="linear"
-              stroke={`hsl(${(index * 360) / allKeys.length}, 70%, 50%)`}
-              strokeWidth={2}
-            />
-          ))}
-        </LineChart>
+        {/* Wrap chart inside ChartContainer */}
+        <ChartContainer>
+          <LineChart data={processedData} width={600} height={400} margin={{ left: 12, right: 12 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+            <YAxis type="number" domain={["auto", "auto"]} />
+            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+            <Legend content={renderLegend} />
+            {allKeys.map((key, index) => (
+              <Line
+                key={key}
+                dataKey={key}
+                type="linear"
+                stroke={config?.colors?.[key] ?? `hsl(${(index * 360) / allKeys.length}, 70%, 50%)`}
+                strokeWidth={2}
+              />
+            ))}
+          </LineChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
