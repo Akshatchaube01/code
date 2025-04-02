@@ -39,7 +39,11 @@ const printChart = () => {
             <tr>
               <th>Month</th>
               ${allKeysArray
-                .map((key) => (hiddenSeries[key] ? "" : `<th>${data.find((d) => d[key])?.[key]?.label || key}</th>`))
+                .map((key) => {
+                  const firstEntry = data.find((d) => typeof d[key] === "object" && d[key] !== null);
+                  const label = firstEntry && typeof firstEntry[key] === "object" ? firstEntry[key].label : key;
+                  return hiddenSeries[key] ? "" : `<th>${label}</th>`;
+                })
                 .join("")}
             </tr>
           </thead>
@@ -50,9 +54,10 @@ const printChart = () => {
               <tr>
                 <td>${row.month}</td>
                 ${allKeysArray
-                  .map((key) =>
-                    hiddenSeries[key] ? "" : `<td>${row[key] ? row[key].value : "N/A"}</td>`
-                  )
+                  .map((key) => {
+                    const value = row[key] && typeof row[key] === "object" ? row[key].value : "N/A";
+                    return hiddenSeries[key] ? "" : `<td>${value}</td>`;
+                  })
                   .join("")}
               </tr>
             `
