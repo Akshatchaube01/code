@@ -13,16 +13,18 @@ import screenfull from "screenfull";
 
 export const description = "A linear line chart";
 
+// Define ChartData interface
 interface ChartData {
   month: string;
-  [key: string]: number; // Dynamic keys
+  [key: string]: { label: string; value: number } | string;
 }
 
+// Props for the LineChart component
 interface LineChartProps {
   title: string;
   description: string;
   config: ChartConfig;
-  data: any[]; // Incoming data with { label, value }
+  data: ChartData[];
 }
 
 export function Component1({ title, description, data, config }: LineChartProps) {
@@ -33,16 +35,16 @@ export function Component1({ title, description, data, config }: LineChartProps)
   const cardRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
 
-  // Format incoming data to extract only `value`
-  const formattedData: ChartData[] = data.map(({ month, ...rest }) => {
-    const entry: ChartData = { month };
+  // Transform the data: Extract only the `value` from each key
+  const formattedData = data.map(({ month, ...rest }) => {
+    const entry: any = { month };
     Object.keys(rest).forEach((key) => {
-      entry[key] = rest[key].value; // Extract numeric value
+      entry[key] = (rest[key] as { label: string; value: number })?.value ?? 0;
     });
     return entry;
   });
 
-  // Extract unique keys dynamically
+  // Extract dynamic keys from the transformed data
   const allKeys = new Set<string>();
   formattedData.forEach((entry) => {
     Object.keys(entry).forEach((key) => {
@@ -51,7 +53,7 @@ export function Component1({ title, description, data, config }: LineChartProps)
   });
   const allKeysArray = Array.from(allKeys);
 
-  // State for toggling series visibility
+  // Manage visibility of each dataset
   const [hiddenSeries, setHiddenSeries] = useState<{ [key: string]: boolean }>(
     Object.fromEntries(allKeysArray.map((key) => [key, false]))
   );
