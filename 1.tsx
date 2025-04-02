@@ -1,43 +1,21 @@
-const renderChart = (width: number, height: number) => {
-  return (
-    <LineChart width={width} height={height} data={processedData} margin={{ left: 12, right: 12 }}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 10)} />
-      <YAxis type="number" domain={["auto", "auto"]} />
-      <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-      <Legend content={renderLegend} />
+const downloadSVG = () => {
+  if (!chartAreaRef.current) return;
 
-      {/* Dynamically generate Line components for each key */}
-      {allKeysArray.map((key, index) => (
-        <Line
-          key={key}
-          dataKey={key}
-          type="linear"
-          stroke={`hsl(${(index * 360) / allKeysArray.length}, 70%, 50%)`} // Unique color per line
-          strokeWidth={2}
-          label={({ x, y, value, index, viewBox }) => {
-            const { height } = viewBox;
-            const isAbove = index === 0 || y < height / 2;
-            return (
-              <text x={x} y={isAbove ? y + 15 : y - 15} fill="black" fontSize={12} textAnchor="middle">
-                {value}
-              </text>
-            );
-          }}
-        />
-      ))}
+  const svgElement = chartAreaRef.current.querySelector("svg");
+  if (!svgElement) return;
 
-      <Brush
-        dataKey="month"
-        height={20}
-        stroke="gray"
-        startIndex={brushStartIndex}
-        endIndex={brushEndIndex}
-        onChange={(range) => {
-          setBrushStartIndex(range.startIndex ?? 0);
-          setBrushEndIndex(range.endIndex ?? data.length - 1);
-        }}
-      />
-    </LineChart>
-  );
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(svgElement);
+
+  const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "chart.svg";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
 };
