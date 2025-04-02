@@ -1,11 +1,3 @@
-const processedData = data.map((entry) => {
-  const updatedEntry: any = { month: entry.month };
+Property 'value' does not exist on type 'string | { label: string; value: number; }'. Did you mean 'valueOf'?
 
-  Object.keys(entry).forEach((key) => {
-    if (key !== "month") {
-      updatedEntry[key] = hiddenSeries[key] ? undefined : entry[key]?.value ?? 0;
-    }
-  });
-
-  return updatedEntry;
-});
+Property 'value' does not exist on type 'string'. ts (2551)
