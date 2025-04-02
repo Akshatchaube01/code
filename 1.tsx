@@ -1,122 +1,69 @@
-"use client";
+const printChart = () => {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
 
-import { CartesianGrid, Line, LineChart, XAxis, Legend, YAxis } from "recharts";
-import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/frame/ui/card";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/frame/ui/chart";
-
-export const description = "A linear line chart";
-
-// Define ChartData interface
-interface ChartData {
-  month: string;
-  [key: string]: { label: string; value: number } | string;
-}
-
-// Props for the LineChart component
-interface LineChartProps {
-  title: string;
-  description: string;
-  config: ChartConfig;
-  data: ChartData[];
-}
-
-export function Component1({ title, description, config, data }: LineChartProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const chartAreaRef = useRef<HTMLDivElement>(null);
-
-  // Format incoming data (extract numeric values)
-  const formattedData = data.map(({ month, ...rest }) => {
-    const entry: any = { month };
-    Object.keys(rest).forEach((key) => {
-      entry[key] = (rest[key] as { label: string; value: number })?.value ?? 0;
-    });
-    return entry;
-  });
-
-  // Map keys to labels for the legend
-  const keyToLabelMap: { [key: string]: string } = {};
-  data.forEach(({ month, ...rest }) => {
-    Object.keys(rest).forEach((key) => {
-      keyToLabelMap[key] = (rest[key] as { label: string; value: number })?.label ?? key;
+  // Extract all unique keys dynamically
+  const allKeys = new Set<string>();
+  data.forEach((entry) => {
+    Object.keys(entry).forEach((key) => {
+      if (key !== "month") allKeys.add(key);
     });
   });
 
-  // Extract unique keys dynamically
-  const allKeys = Object.keys(keyToLabelMap);
+  // Convert Set to Array
+  const allKeysArray = Array.from(allKeys);
 
-  // Manage visibility of each dataset
-  const [hiddenSeries, setHiddenSeries] = useState<{ [key: string]: boolean }>(
-    Object.fromEntries(allKeys.map((key) => [key, false]))
-  );
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Print Chart & Data</title>
+        <link rel="stylesheet" href="/styles.css" />
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .chart-container { text-align: center; margin-bottom: 20px; }
+          .table-container { width: 100%; margin-top: 20px; border-collapse: collapse; }
+          table, th, td { border: 1px solid black; padding: 10px; text-align: center; }
+          svg { filter: none !important; }
+        </style>
+      </head>
+      <body>
+        <h2>${title}</h2>
 
-  // Processed data - hide series if toggled off
-  const processedData = formattedData.map((entry) => {
-    const updatedEntry: any = { month: entry.month };
-    allKeys.forEach((key) => {
-      updatedEntry[key] = hiddenSeries[key] ? undefined : entry[key];
-    });
-    return updatedEntry;
-  });
+        <div class="chart-container">
+          ${cardRef.current?.querySelector("#chartArea")?.innerHTML || ""}
+        </div>
 
-  const renderLegend = (props: any) => {
-    const { payload } = props;
-    return (
-      <div className="flex justify-center mt-4">
-        {payload.map((entry: any) => {
-          const key = entry.value;
-          const label = keyToLabelMap[key];
-          const isHidden = hiddenSeries[key];
+        <h3>Raw Data</h3>
+        <table class="table-container">
+          <thead>
+            <tr>
+              <th>Month</th>
+              ${allKeysArray
+                .map((key) => (hiddenSeries[key] ? "" : `<th>${data.find((d) => d[key])?.[key]?.label || key}</th>`))
+                .join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${data
+              .map(
+                (row) => `
+              <tr>
+                <td>${row.month}</td>
+                ${allKeysArray
+                  .map((key) =>
+                    hiddenSeries[key] ? "" : `<td>${row[key] ? row[key].value : "N/A"}</td>`
+                  )
+                  .join("")}
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
 
-          return (
-            <span
-              key={key}
-              className="cursor-pointer text-sm font-medium mx-4 transition-all"
-              style={{
-                color: isHidden ? "gray" : entry.color,
-                textDecoration: isHidden ? "line-through" : "none",
-              }}
-              onClick={() =>
-                setHiddenSeries((prev) => ({
-                  ...prev,
-                  [key]: !prev[key],
-                }))
-              }
-            >
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
-
-  return (
-    <Card ref={cardRef} className="p-4 w-full max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent ref={chartAreaRef}>
-        {/* Wrap chart inside ChartContainer */}
-        <ChartContainer>
-          <LineChart data={processedData} width={600} height={400} margin={{ left: 12, right: 12 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-            <YAxis type="number" domain={["auto", "auto"]} />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-            <Legend content={renderLegend} />
-            {allKeys.map((key, index) => (
-              <Line
-                key={key}
-                dataKey={key}
-                type="linear"
-                stroke={config?.colors?.[key] ?? `hsl(${(index * 360) / allKeys.length}, 70%, 50%)`}
-                strokeWidth={2}
-              />
-            ))}
-          </LineChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
-  );
-}
+  printWindow.document.close();
+  printWindow.print();
+};
