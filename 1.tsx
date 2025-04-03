@@ -1,22 +1,13 @@
-const renderLegend2 = () => {
-  const uniqueMonths = Array.from(new Set(data.map((d) => d.month)));
+function transformBar(data: InputData): ChartData[] {
+  if (!data || !data.rows || !Array.isArray(data.rows)) {
+    console.error("Invalid data format:", data);
+    return [];
+  }
 
-  return (
-    <ul style={{ listStyle: "none", padding: 0, margin: "10px auto", textAlign: "center" }}>
-      {uniqueMonths.map((month, index) => (
-        <li key={`${month}-${index}`} style={{ display: "inline-block", margin: "0 10px" }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              backgroundColor: monthColors[month] || "#000",
-              marginRight: 4,
-            }}
-          />
-          {month}
-        </li>
-      ))}
-    </ul>
-  );
-};
+  return data.rows.map((row) => ({
+    month: row.REPORT_DATA ?? "Unknown", // Handle missing `REPORT_DATA`
+    red: (row.RED_UB_MODEL ?? 0) - (row.RED_LB_MODEL ?? 0),
+    yellow: (row.AMBER_UB_MODEL ?? 0) - (row.AMBER_LB_MODEL ?? 0),
+    green: (row.GREEN_UB_MODEL ?? 0) - (row.GREEN_LB_MODEL ?? 0),
+  }));
+}
