@@ -1,26 +1,22 @@
-<Pie
-  data={yellowData}
-  dataKey="value"
-  nameKey="name"
-  cx="50%"
-  cy="50%"
-  innerRadius={120}
-  outerRadius={160}
-  label
->
-  {yellowData.map((entry, index) => (
-    <Cell key={`yellow-${index}`} fill={monthColors[entry.name]} />
-  ))}
-</Pie>
+const renderLegend2 = () => {
+  const uniqueMonths = Array.from(new Set(data.map((d) => d.month)));
 
-const monthColors = useMemo(() => {
-  const mapping: Record<string, string> = {};
-
-  data?.forEach((d) => {
-    if (!mapping[d.month]) { // Fix condition
-      mapping[d.month] = getRandomColor();
-    }
-  });
-
-  return mapping;
-}, [data]); // Add `data` as a dependency
+  return (
+    <ul style={{ listStyle: "none", padding: 0, margin: "10px auto", textAlign: "center" }}>
+      {uniqueMonths.map((month, index) => (
+        <li key={`${month}-${index}`} style={{ display: "inline-block", margin: "0 10px" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 12,
+              height: 12,
+              backgroundColor: monthColors[month] || "#000",
+              marginRight: 4,
+            }}
+          />
+          {month}
+        </li>
+      ))}
+    </ul>
+  );
+};
