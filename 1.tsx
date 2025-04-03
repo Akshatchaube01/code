@@ -1,33 +1,26 @@
-const downloadPNG = () => {
-  if (!chartAreaRef.current) return;
+<Pie
+  data={yellowData}
+  dataKey="value"
+  nameKey="name"
+  cx="50%"
+  cy="50%"
+  innerRadius={120}
+  outerRadius={160}
+  label
+>
+  {yellowData.map((entry, index) => (
+    <Cell key={`yellow-${index}`} fill={monthColors[entry.name]} />
+  ))}
+</Pie>
 
-  const svgElement = chartAreaRef.current.querySelector("svg");
-  if (!svgElement) return;
+const monthColors = useMemo(() => {
+  const mapping: Record<string, string> = {};
 
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svgElement);
-  const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = svgElement.clientWidth;
-    canvas.height = svgElement.clientHeight;
-
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.drawImage(img, 0, 0);
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "chart.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  data?.forEach((d) => {
+    if (!mapping[d.month]) { // Fix condition
+      mapping[d.month] = getRandomColor();
     }
+  });
 
-    URL.revokeObjectURL(url);
-  };
-
-  img.src = url;
-};
+  return mapping;
+}, [data]); // Add `data` as a dependency
