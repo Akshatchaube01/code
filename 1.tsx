@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -69,7 +68,7 @@ export default function HorizontalNavbar() {
   ]
 
   return (
-    <div className="w-full bg-gray-800 text-white shadow-md">
+    <div className="w-full bg-gray-800 text-white shadow-md relative">
       <div className="flex items-center justify-between px-6 py-4 font-semibold">
         {/* Left: Logo and Text */}
         <div className="flex items-center gap-4">
@@ -79,8 +78,8 @@ export default function HorizontalNavbar() {
           </Link>
         </div>
 
-        {/* Center: Navigation Menus */}
-        <div className="flex gap-[2rem] justify-center items-center">
+        {/* Center: Absolute Positioned, Evenly Spread Menus */}
+        <div className="absolute left-1/2 -translate-x-1/2 w-[700px] flex justify-between items-center">
           {menus.map((menu, index) => (
             <div key={index} className="relative group">
               <button className="flex items-center gap-1 hover:text-gray-300 transition">
