@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -15,6 +16,20 @@ import {
 } from "lucide-react"
 
 export default function HorizontalNavbar() {
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleMouseEnter = (title: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    setOpenMenu(title)
+  }
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setOpenMenu(null)
+    }, 2000)
+  }
+
   const menus = [
     {
       title: "User Menu",
@@ -78,26 +93,33 @@ export default function HorizontalNavbar() {
           </Link>
         </div>
 
-        {/* Center: Absolute Positioned, Evenly Spread Menus */}
+        {/* Center: Evenly Spread Menus */}
         <div className="absolute left-1/2 -translate-x-1/2 w-[700px] flex justify-between items-center">
           {menus.map((menu, index) => (
-            <div key={index} className="relative group">
+            <div
+              key={index}
+              className="relative"
+              onMouseEnter={() => handleMouseEnter(menu.title)}
+              onMouseLeave={handleMouseLeave}
+            >
               <button className="flex items-center gap-1 hover:text-gray-300 transition">
                 {menu.title}
                 <ChevronDown size={18} />
               </button>
-              <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-50 hidden group-hover:block">
-                {menu.items.map((item, idx) => (
-                  <Link
-                    key={idx}
-                    href={item.href}
-                    className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition whitespace-nowrap"
-                  >
-                    <span>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              {openMenu === menu.title && (
+                <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-50">
+                  {menu.items.map((item, idx) => (
+                    <Link
+                      key={idx}
+                      href={item.href}
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition whitespace-nowrap"
+                    >
+                      <span>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
