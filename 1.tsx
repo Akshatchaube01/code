@@ -76,15 +76,15 @@ export default function HorizontalNavbar() {
               </button>
 
               {openMenu === menu.title && (
-                <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg z-50 min-w-max">
+                <div className="absolute top-full left-0 bg-gray-800 mt-2 rounded-md shadow-lg z-50 min-w-max border border-gray-600">
                   {menu.items.map((item, idx) => (
                     <Link
                       key={idx}
                       href={item.href}
-                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition whitespace-nowrap"
+                      className="flex items-center gap-2 px-5 py-2 text-white hover:bg-gray-700 transition whitespace-nowrap"
                     >
                       <span className="w-5">{item.icon}</span>
-                      {item.label}
+                      <span>{item.label}</span>
                     </Link>
                   ))}
                 </div>
