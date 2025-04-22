@@ -16,18 +16,18 @@ export default function HorizontalNavbar() {
   }
 
   return (
-    <div className="w-screen bg-gray-800 text-white shadow-md">
-      <div className="flex justify-between items-center px-8 py-4 text-lg font-semibold">
-        {/* Logo on the left */}
-        <div className="flex items-center gap-4">
-          <Image src="/hsbc_logo.png" alt="Logo" width={140} height={60} />
+    <div className="w-full bg-gray-800 text-white shadow-md fixed top-0 z-50">
+      <div className="flex flex-wrap justify-between items-center px-4 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold">
+        {/* Logo */}
+        <div className="flex items-center gap-4 mb-2 md:mb-0">
+          <Image src="/hsbc_logo.png" alt="Logo" width={120} height={50} />
           <Link href="/appx">
-            <h1 className="text-2xl tracking-wide font-bold">PROPEL</h1>
+            <h1 className="text-xl md:text-2xl tracking-wide font-bold">PROPEL</h1>
           </Link>
         </div>
 
-        {/* Menu on the right */}
-        <div className="flex items-center gap-10 text-base relative">
+        {/* Menu Items */}
+        <div className="flex items-center gap-6 md:gap-10 overflow-x-auto">
           {[
             {
               title: "User Menu",
@@ -72,7 +72,7 @@ export default function HorizontalNavbar() {
             <div key={index} className="relative">
               <button
                 onClick={() => toggleMenu(menu.title)}
-                className="flex items-center gap-1 hover:text-gray-300 transition"
+                className="flex items-center gap-1 whitespace-nowrap hover:text-gray-300 transition"
               >
                 {menu.title}
                 {openMenu === menu.title ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -83,7 +83,7 @@ export default function HorizontalNavbar() {
                     <Link
                       href={item.href}
                       key={idx}
-                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition text-base whitespace-nowrap"
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition text-sm md:text-base whitespace-nowrap"
                     >
                       <span className="w-5">{item.icon}</span>
                       {item.label}
