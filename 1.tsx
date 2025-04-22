@@ -18,7 +18,7 @@ export default function HorizontalNavbar() {
   return (
     <div className="w-full bg-gray-800 text-white shadow-md fixed top-0 z-50">
       <div className="flex flex-wrap justify-between items-center px-4 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold">
-        {/* Logo */}
+        {/* Logo on the left */}
         <div className="flex items-center gap-4 mb-2 md:mb-0">
           <Image src="/hsbc_logo.png" alt="Logo" width={120} height={50} />
           <Link href="/appx">
@@ -26,8 +26,8 @@ export default function HorizontalNavbar() {
           </Link>
         </div>
 
-        {/* Menu Items */}
-        <div className="flex items-center gap-6 md:gap-10 overflow-x-auto">
+        {/* Menu on the right - horizontally scrollable on small screens */}
+        <div className="flex items-center gap-6 md:gap-10 overflow-x-auto scrollbar-hide">
           {[
             {
               title: "User Menu",
@@ -69,10 +69,10 @@ export default function HorizontalNavbar() {
               ]
             }
           ].map((menu, index) => (
-            <div key={index} className="relative">
+            <div key={index} className="relative whitespace-nowrap">
               <button
                 onClick={() => toggleMenu(menu.title)}
-                className="flex items-center gap-1 whitespace-nowrap hover:text-gray-300 transition"
+                className="flex items-center gap-1 hover:text-gray-300 transition"
               >
                 {menu.title}
                 {openMenu === menu.title ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
