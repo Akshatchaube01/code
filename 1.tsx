@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -17,19 +16,24 @@ export default function HorizontalNavbar() {
   }
 
   return (
-    <div className="w-full bg-gray-800 text-white shadow-md">
-      <div className="flex justify-between items-center px-4 py-2">
+    <div className="w-screen bg-gray-800 text-white shadow-md">
+      <div className="flex justify-between items-center px-8 py-4 text-lg font-semibold">
+        {/* Logo on the left */}
         <div className="flex items-center gap-4">
-          <Image src="/hsbc_logo.png" alt="Logo" width={120} height={50} />
-          <Link href="/appx"><h1 className="text-xl font-bold">PROPEL</h1></Link>
+          <Image src="/hsbc_logo.png" alt="Logo" width={140} height={60} />
+          <Link href="/appx">
+            <h1 className="text-2xl tracking-wide font-bold">PROPEL</h1>
+          </Link>
         </div>
-        <div className="flex items-center gap-8">
+
+        {/* Menu on the right */}
+        <div className="flex items-center gap-10 text-base relative">
           {[
             {
               title: "User Menu",
               items: [
                 { href: "/appx/login", icon: <UserRoundPlus />, label: "Sign In" },
-                { href: "/appx/feedback", icon: <MessageSquare />, label: "Feedback" },
+                { href: "/appx/feedback", icon: <MessageSquare />, label: "Feedback" }
               ]
             },
             {
@@ -71,17 +75,17 @@ export default function HorizontalNavbar() {
                 className="flex items-center gap-1 hover:text-gray-300 transition"
               >
                 {menu.title}
-                {openMenu === menu.title ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {openMenu === menu.title ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
               {openMenu === menu.title && (
-                <div className="absolute top-10 left-0 bg-gray-700 rounded-md shadow-md z-10 min-w-max">
+                <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg z-50 min-w-max">
                   {menu.items.map((item, idx) => (
                     <Link
                       href={item.href}
                       key={idx}
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-600 transition text-sm whitespace-nowrap"
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition text-base whitespace-nowrap"
                     >
-                      <span className="w-4">{item.icon}</span>
+                      <span className="w-5">{item.icon}</span>
                       {item.label}
                     </Link>
                   ))}
