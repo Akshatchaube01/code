@@ -6,16 +6,12 @@ interface DataItem {
   value: number;
 }
 
-const DynamicPieChart: FC = () => {
-  const data: DataItem[] = [
-    { name: 'A', value: 400 },
-    { name: 'B', value: 300 },
-    { name: 'C', value: 200 },
-    { name: 'D', value: 100 }
-  ];
+interface DynamicPieChartProps {
+  data: DataItem[];
+  colors: string[];
+}
 
-  const colors: string[] = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50'];
-
+const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, colors }) => {
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, index }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
