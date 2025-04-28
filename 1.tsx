@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Label } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface DataItem {
   name: string;
@@ -16,7 +16,7 @@ const DynamicPieChart: FC = () => {
 
   const colors: string[] = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50'];
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, index }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -43,6 +43,7 @@ const DynamicPieChart: FC = () => {
             innerRadius={80}
             paddingAngle={5}
             label={renderCustomizedLabel}
+            labelLine={false}
           >
             {data.map((_, index) => (
               <Cell key={`cell-pie-${index}`} fill={colors[index % colors.length]} />
