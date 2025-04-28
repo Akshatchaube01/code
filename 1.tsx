@@ -1,17 +1,12 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const DynamicBarChart = ({ data }) => {
-  const bars = data && Array.isArray(data)
-    ? data.map((entry, index) => (
-        <Bar
-          key={index}
-          dataKey={entry.dataKey || 'value'}
-          fill={entry.color || `#${Math.floor(Math.random() * 16777215).toString(16)}`}
-          name={entry.name}
-          barSize={30}
-        />
-      ))
-    : null;
+const DynamicBarChart = () => {
+  const data = [
+    { name: 'A', value: 400 },
+    { name: 'B', value: 300 },
+    { name: 'C', value: 200 },
+    { name: 'D', value: 100 }
+  ];
 
   return (
     <div className="w-full h-96 p-4">
@@ -25,7 +20,14 @@ const DynamicBarChart = ({ data }) => {
           <YAxis />
           <Tooltip />
           <Legend />
-          {bars}
+          {data.map((entry, index) => (
+            <Bar
+              key={index}
+              dataKey="value"
+              fill={`#${Math.floor(Math.random() * 16777215).toString(16)}`}
+              barSize={30}
+            />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     </div>
