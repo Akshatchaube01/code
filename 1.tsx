@@ -1,7 +1,13 @@
+import { FC } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const DynamicBarChart = () => {
-  const data = [
+interface DataItem {
+  name: string;
+  value: number;
+}
+
+const DynamicBarChart: FC = () => {
+  const data: DataItem[] = [
     { name: 'A', value: 400 },
     { name: 'B', value: 300 },
     { name: 'C', value: 200 },
