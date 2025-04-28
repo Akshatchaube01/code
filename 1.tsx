@@ -1,63 +1,36 @@
-import { FC, ReactNode } from 'react';
-import { Users, Cube, Folder, Star } from 'lucide-react';
+<TabPanel>
+  <div className="space-y-10">
+    {/* Dashboard Cards */}
+    <DashboardCards />
 
-interface CardData {
-  title: string;
-  value: number;
-  description?: string;
-  highlight?: string;
-  icon: ReactNode;   // Correct type here
-}
-
-const cardData: CardData[] = [
-  {
-    title: 'Assigned FTEs',
-    value: 85,
-    description: 'As on April 25, 2025',
-    icon: <Users size={32} className="text-blue-500" />,
-  },
-  {
-    title: 'Ongoing Projects',
-    value: 49,
-    highlight: '70.00% of all projects',
-    icon: <Cube size={32} className="text-blue-500" />,
-  },
-  {
-    title: 'Total Projects',
-    value: 70,
-    description: 'Includes all projects',
-    icon: <Folder size={32} className="text-blue-500" />,
-  },
-  {
-    title: "I'm Involved",
-    value: 0,
-    description: '(active projects)',
-    icon: <Star size={32} className="text-blue-500" />,
-  },
-];
-
-const DashboardCards: FC = () => {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-      {cardData.map((card, index) => (
-        <div
-          key={index}
-          className="border rounded-2xl shadow-md p-6 flex flex-col justify-between h-44 bg-white"
-        >
-          <div className="flex items-center gap-4">
-            {card.icon}
-            <div className="text-gray-600 font-medium">{card.title}</div>
-          </div>
-          <div className="text-4xl font-bold text-gray-900 mt-4">{card.value}</div>
-          {card.highlight ? (
-            <div className="text-green-500 font-semibold text-sm mt-2">{card.highlight}</div>
-          ) : (
-            <div className="text-gray-400 text-sm mt-2">{card.description}</div>
-          )}
-        </div>
-      ))}
+    {/* Employee Table */}
+    <div className="text-center py-10">
+      <h1 className="text-4xl font-semibold mb-6">Project Type Distribution</h1>
+      <EmployeeTablePage />
     </div>
-  );
-};
 
-export default DashboardCards;
+    {/* All Projects By Status - Bar Chart */}
+    <div className="text-center">
+      <h1 className="text-4xl font-semibold mb-6">All Projects By Status</h1>
+      <DynamicBarChart data={bardata1} colors={barcolors1} />
+    </div>
+
+    {/* Projects by Type & Project Label - Pie Charts */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="text-center">
+        <h1 className="text-4xl font-semibold mb-6">Projects By Type</h1>
+        <DynamicPieChart data={data1} colors={colors1} />
+      </div>
+      <div className="text-center">
+        <h1 className="text-4xl font-semibold mb-6">Projects By Project Label</h1>
+        <DynamicPieChart data={data2} colors={colors2} />
+      </div>
+    </div>
+
+    {/* Projects by Type (Level 2) - Bar Chart */}
+    <div className="text-center">
+      <h1 className="text-4xl font-semibold mb-6">Projects By Type (Level-2)</h1>
+      <DynamicBarChart data={bardata2} colors={barcolors2} />
+    </div>
+  </div>
+</TabPanel>
