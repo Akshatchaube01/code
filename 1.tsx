@@ -1,12 +1,12 @@
 import { FC } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface DataItem {
   name: string;
   value: number;
 }
 
-const DynamicCharts: FC = () => {
+const DynamicPieChart: FC = () => {
   const data: DataItem[] = [
     { name: 'A', value: 400 },
     { name: 'B', value: 300 },
@@ -17,50 +17,30 @@ const DynamicCharts: FC = () => {
   const colors: string[] = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50'];
 
   return (
-    <div className="w-full flex flex-col md:flex-row gap-8 p-4">
-      <div className="w-full md:w-1/2 h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+    <div className="w-full h-[36rem] p-6">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
             data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={180}
+            innerRadius={80}
+            paddingAngle={5}
+            label
           >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="value" barSize={30}>
-              {data.map((_, index) => (
-                <Cell key={`cell-bar-${index}`} fill={colors[index % colors.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="w-full md:w-1/2 h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label
-            >
-              {data.map((_, index) => (
-                <Cell key={`cell-pie-${index}`} fill={colors[index % colors.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
+            {data.map((_, index) => (
+              <Cell key={`cell-pie-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
     </div>
   );
 };
 
-export default DynamicCharts;
+export default DynamicPieChart;
