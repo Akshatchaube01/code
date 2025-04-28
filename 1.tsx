@@ -1,56 +1,63 @@
 import { FC } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, Cube, Folder, Star } from 'lucide-react';
 
-interface DataItem {
-  name: string;
+interface CardData {
+  title: string;
   value: number;
+  description?: string;
+  highlight?: string;
+  icon: JSX.Element;
 }
 
-interface DynamicPieChartProps {
-  data: DataItem[];
-  colors: string[];
-}
+const cardData: CardData[] = [
+  {
+    title: 'Assigned FTEs',
+    value: 85,
+    description: 'As on April 25, 2025',
+    icon: <Users size={32} className="text-blue-500" />,
+  },
+  {
+    title: 'Ongoing Projects',
+    value: 49,
+    highlight: '70.00% of all projects',
+    icon: <Cube size={32} className="text-blue-500" />,
+  },
+  {
+    title: 'Total Projects',
+    value: 70,
+    description: 'Includes all projects',
+    icon: <Folder size={32} className="text-blue-500" />,
+  },
+  {
+    title: "I'm Involved",
+    value: 0,
+    description: '(active projects)',
+    icon: <Star size={32} className="text-blue-500" />,
+  },
+];
 
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, colors }) => {
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, index }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={14}>
-        {data[index].value}
-      </text>
-    );
-  };
-
+const DashboardCards: FC = () => {
   return (
-    <div className="w-full h-[36rem] p-6">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            outerRadius={180}
-            innerRadius={80}
-            paddingAngle={5}
-            label={renderCustomizedLabel}
-            labelLine={false}
-          >
-            {data.map((_, index) => (
-              <Cell key={`cell-pie-${index}`} fill={colors[index % colors.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+      {cardData.map((card, index) => (
+        <div
+          key={index}
+          className="border rounded-2xl shadow-md p-6 flex flex-col justify-between h-44 bg-white"
+        >
+          <div className="flex items-center gap-4">
+            {card.icon}
+            <div className="text-gray-600 font-medium">{card.title}</div>
+          </div>
+          <div className="text-4xl font-bold text-gray-900 mt-4">{card.value}</div>
+          {card.highlight ? (
+            <div className="text-green-500 font-semibold text-sm mt-2">{card.highlight}</div>
+          ) : (
+            <div className="text-gray-400 text-sm mt-2">{card.description}</div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
 
-export default DynamicPieChart;
+export default DashboardCards;
