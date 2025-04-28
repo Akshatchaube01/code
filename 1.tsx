@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { Users, Cube, Folder, Star } from 'lucide-react';
 
 interface CardData {
@@ -6,7 +6,7 @@ interface CardData {
   value: number;
   description?: string;
   highlight?: string;
-  icon: JSX.Element;
+  icon: ReactNode;   // Correct type here
 }
 
 const cardData: CardData[] = [
