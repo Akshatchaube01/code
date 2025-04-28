@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface DataItem {
   name: string;
@@ -14,6 +14,8 @@ const DynamicBarChart: FC = () => {
     { name: 'D', value: 100 }
   ];
 
+  const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50'];
+
   return (
     <div className="w-full h-96 p-4">
       <ResponsiveContainer width="100%" height="100%">
@@ -26,14 +28,11 @@ const DynamicBarChart: FC = () => {
           <YAxis />
           <Tooltip />
           <Legend />
-          {data.map((entry, index) => (
-            <Bar
-              key={index}
-              dataKey="value"
-              fill={`#${Math.floor(Math.random() * 16777215).toString(16)}`}
-              barSize={30}
-            />
-          ))}
+          <Bar dataKey="value" barSize={30}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
