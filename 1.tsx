@@ -1,36 +1,79 @@
-<TabPanel>
-  <div className="space-y-10">
-    {/* Dashboard Cards */}
-    <DashboardCards />
+import { FC, useEffect } from 'react';
+import { ReactTabulator } from 'react-tabulator';
+import 'react-tabulator/lib/css/tabulator.min.css'; // Needed for core functionality
 
-    {/* Employee Table */}
-    <div className="text-center py-10">
-      <h1 className="text-4xl font-semibold mb-6">Project Type Distribution</h1>
-      <EmployeeTablePage />
-    </div>
+interface RowData {
+  type: string;
+  count: number;
+}
 
-    {/* All Projects By Status - Bar Chart */}
-    <div className="text-center">
-      <h1 className="text-4xl font-semibold mb-6">All Projects By Status</h1>
-      <DynamicBarChart data={bardata1} colors={barcolors1} />
-    </div>
+const tableData: RowData[] = [
+  { type: 'Governance and Control', count: 2 },
+  { type: 'Model Development (New)', count: 20 },
+  { type: 'Model Execution', count: 15 },
+  { type: 'Model Implementation', count: 1 },
+  { type: 'Model Monitoring', count: 7 },
+  { type: 'Tool Development and Maintenance', count: 4 },
+];
 
-    {/* Projects by Type & Project Label - Pie Charts */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-      <div className="text-center">
-        <h1 className="text-4xl font-semibold mb-6">Projects By Type</h1>
-        <DynamicPieChart data={data1} colors={colors1} />
-      </div>
-      <div className="text-center">
-        <h1 className="text-4xl font-semibold mb-6">Projects By Project Label</h1>
-        <DynamicPieChart data={data2} colors={colors2} />
-      </div>
-    </div>
+const columns = [
+  { title: 'Project Type', field: 'type', headerSort: false },
+  { title: 'Count', field: 'count', headerSort: false, hozAlign: 'center' },
+];
 
-    {/* Projects by Type (Level 2) - Bar Chart */}
-    <div className="text-center">
-      <h1 className="text-4xl font-semibold mb-6">Projects By Type (Level-2)</h1>
-      <DynamicBarChart data={bardata2} colors={barcolors2} />
+const tableOptions = {
+  layout: 'fitColumns',
+  movableColumns: false,
+  resizableRows: false,
+  tooltips: true,
+};
+
+const ProjectTypeTable: FC = () => {
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .tabulator {
+        border: 2px solid #ef4444; /* Tailwind Red-500 */
+        border-radius: 1rem;
+      }
+      .tabulator-header {
+        background-color: #dc2626; /* Tailwind Red-600 */
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+        text-align: left;
+      }
+      .tabulator-header .tabulator-col {
+        border: none;
+      }
+      .tabulator-row {
+        background-color: #fef2f2; /* Tailwind Red-50 */
+        border-bottom: 1px solid #ef4444;
+      }
+      .tabulator-row:hover {
+        background-color: #fee2e2; /* Tailwind Red-100 */
+      }
+      .tabulator-cell {
+        font-size: 1rem;
+        color: #374151; /* Tailwind Gray-700 */
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  return (
+    <div className="overflow-x-auto p-2">
+      <ReactTabulator
+        data={tableData}
+        columns={columns}
+        options={tableOptions}
+        className="w-full"
+      />
     </div>
-  </div>
-</TabPanel>
+  );
+};
+
+export default ProjectTypeTable;
