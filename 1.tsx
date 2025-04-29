@@ -1,53 +1,68 @@
-import { FC } from 'react';
-import { ReactTabulator } from 'react-tabulator';
-import 'react-tabulator/lib/styles.css'; // core Tabulator CSS
-import 'react-tabulator/css/tabulator.min.css'; // default theme
-import './tailwind-tabulator.css'; // custom Tailwind override (explained below)
+import { FC, useState } from 'react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
-type ProjectRow = {
+type ProjectTypeRow = {
   type: string;
   count: number;
-  _children?: ProjectRow[];
+  children?: ProjectTypeRow[];
 };
 
-type ProjectTypeTabulatorProps = {
-  data: ProjectRow[];
+type ProjectTypeTableProps = {
+  data: ProjectTypeRow[];
 };
 
-const columns = [
-  {
-    title: 'Project Type',
-    field: 'type',
-    headerSort: false,
-    hozAlign: 'left',
-    headerVertical: 'middle',
-    cellClass: 'px-6 py-4 text-gray-700',
-    headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold border-r border-white text-left',
-  },
-  {
-    title: 'Count',
-    field: 'count',
-    headerSort: false,
-    hozAlign: 'center',
-    cellClass: 'px-6 py-4 text-center text-gray-700',
-    headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold text-center',
-  },
-];
+const ProjectTypeTable: FC<ProjectTypeTableProps> = ({ data }) => {
+  const [expanded, setExpanded] = useState<{ [key: number]: boolean }>({});
 
-const ProjectTypeTabulator: FC<ProjectTypeTabulatorProps> = ({ data }) => {
+  const toggleExpand = (index: number) => {
+    setExpanded(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
   return (
     <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600">
-      <ReactTabulator
-        data={data}
-        columns={columns}
-        layout="fitColumns"
-        dataTree={true}
-        dataTreeStartExpanded={true}
-        reactiveData={true}
-        options={{ height: 'auto' }}
-      />
+      <table className="min-w-full table-auto">
+        <thead className="bg-red-600 text-white">
+          <tr>
+            <th className="px-6 py-4 text-left text-md font-bold border-r border-white">Project Type</th>
+            <th className="px-6 py-4 text-center text-md font-bold">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, index) => (
+            <React.Fragment key={index}>
+              <tr
+                className="bg-white border-b border-red-500 cursor-pointer"
+                onClick={() => row.children && toggleExpand(index)}
+              >
+                <td className="px-6 py-4 text-gray-700 flex items-center">
+                  {row.children ? (
+                    <span
+                      className={`transition-transform mr-2 duration-300 ${
+                        expanded[index] ? 'rotate-90' : ''
+                      }`}
+                    >
+                      <ChevronRight size={16} />
+                    </span>
+                  ) : (
+                    <span className="w-4 mr-2" />
+                  )}
+                  {row.type}
+                </td>
+                <td className="px-6 py-4 text-center text-gray-700">{row.count}</td>
+              </tr>
+              {expanded[index] &&
+                row.children?.map((child, cIndex) => (
+                  <tr key={cIndex} className="bg-gray-100 border-b border-red-300">
+                    <td className="px-10 py-4 text-gray-700">↳ {child.type}</td>
+                    <td className="px-6 py-4 text-center text-gray-700">{child.count}</td>
+                  </tr>
+                ))}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
 
-export default ProjectTypeTabulator;
+export default ProjectTypeTable;
