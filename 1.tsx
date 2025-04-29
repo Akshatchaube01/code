@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 type ProjectTypeRow = {
   type: string;
@@ -12,10 +12,10 @@ type ProjectTypeTableProps = {
 };
 
 const ProjectTypeTable: FC<ProjectTypeTableProps> = ({ data }) => {
-  const [expanded, setExpanded] = useState<{ [key: number]: boolean }>({});
+  const [expandedIndex, setExpandedIndex] = useState<{ [key: number]: boolean }>({});
 
   const toggleExpand = (index: number) => {
-    setExpanded(prev => ({ ...prev, [index]: !prev[index] }));
+    setExpandedIndex(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
   return (
@@ -28,21 +28,22 @@ const ProjectTypeTable: FC<ProjectTypeTableProps> = ({ data }) => {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
-            <React.Fragment key={index}>
+          {data.flatMap((row, index) => {
+            const isExpanded = expandedIndex[index];
+            const rows: JSX.Element[] = [];
+
+            rows.push(
               <tr
+                key={`parent-${index}`}
                 className="bg-white border-b border-red-500 cursor-pointer"
                 onClick={() => row.children && toggleExpand(index)}
               >
                 <td className="px-6 py-4 text-gray-700 flex items-center">
                   {row.children ? (
-                    <span
-                      className={`transition-transform mr-2 duration-300 ${
-                        expanded[index] ? 'rotate-90' : ''
-                      }`}
-                    >
-                      <ChevronRight size={16} />
-                    </span>
+                    <ChevronRight
+                      size={16}
+                      className={`mr-2 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                    />
                   ) : (
                     <span className="w-4 mr-2" />
                   )}
@@ -50,15 +51,21 @@ const ProjectTypeTable: FC<ProjectTypeTableProps> = ({ data }) => {
                 </td>
                 <td className="px-6 py-4 text-center text-gray-700">{row.count}</td>
               </tr>
-              {expanded[index] &&
-                row.children?.map((child, cIndex) => (
-                  <tr key={cIndex} className="bg-gray-100 border-b border-red-300">
+            );
+
+            if (isExpanded && row.children) {
+              row.children.forEach((child, childIndex) => {
+                rows.push(
+                  <tr key={`child-${index}-${childIndex}`} className="bg-gray-100 border-b border-red-300">
                     <td className="px-10 py-4 text-gray-700">↳ {child.type}</td>
                     <td className="px-6 py-4 text-center text-gray-700">{child.count}</td>
                   </tr>
-                ))}
-            </React.Fragment>
-          ))}
+                );
+              });
+            }
+
+            return rows;
+          })}
         </tbody>
       </table>
     </div>
