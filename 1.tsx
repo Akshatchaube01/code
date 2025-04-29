@@ -1,12 +1,20 @@
 import { FC } from 'react';
 
-const EmployeeGCBTable: FC = () => {
-  const data = [
-    { country: 'India', gcb3: 1, gcb4: 11, gcb5: 27, gcb6: 41, gcbNA: 0, total: 80 },
-    { country: 'United Kingdom', gcb3: 2, gcb4: 5, gcb5: 9, gcb6: 0, gcbNA: 2, total: 18 },
-    { country: 'Total', gcb3: 3, gcb4: 16, gcb5: 36, gcb6: 41, gcbNA: 2, total: 98 },
-  ];
+type GCBRow = {
+  country: string;
+  gcb3: number;
+  gcb4: number;
+  gcb5: number;
+  gcb6: number;
+  gcbNA: number;
+  total: number;
+};
 
+type EmployeeGCBTableProps = {
+  data: GCBRow[];
+};
+
+const EmployeeGCBTable: FC<EmployeeGCBTableProps> = ({ data }) => {
   return (
     <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600">
       <table className="min-w-full table-auto">
