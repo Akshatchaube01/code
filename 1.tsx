@@ -1,7 +1,8 @@
-import { FC, useEffect, useRef } from 'react';
-import Tabulator from 'tabulator-tables';
-import 'tabulator-tables/dist/css/tabulator.min.css';
-import './tailwind-tabulator.css'; // You must create this file to apply Tailwind styles
+import { FC } from 'react';
+import { ReactTabulator } from 'react-tabulator';
+import 'react-tabulator/lib/styles.css'; // core Tabulator CSS
+import 'react-tabulator/css/tabulator.min.css'; // default theme
+import './tailwind-tabulator.css'; // custom Tailwind override (explained below)
 
 type ProjectRow = {
   type: string;
@@ -13,43 +14,38 @@ type ProjectTypeTabulatorProps = {
   data: ProjectRow[];
 };
 
+const columns = [
+  {
+    title: 'Project Type',
+    field: 'type',
+    headerSort: false,
+    hozAlign: 'left',
+    headerVertical: 'middle',
+    cellClass: 'px-6 py-4 text-gray-700',
+    headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold border-r border-white text-left',
+  },
+  {
+    title: 'Count',
+    field: 'count',
+    headerSort: false,
+    hozAlign: 'center',
+    cellClass: 'px-6 py-4 text-center text-gray-700',
+    headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold text-center',
+  },
+];
+
 const ProjectTypeTabulator: FC<ProjectTypeTabulatorProps> = ({ data }) => {
-  const tableRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (tableRef.current) {
-      new Tabulator(tableRef.current, {
-        data,
-        layout: 'fitColumns',
-        height: 'auto',
-        reactiveData: true,
-        dataTree: true,
-        dataTreeStartExpanded: true,
-        columns: [
-          {
-            title: 'Project Type',
-            field: 'type',
-            headerSort: false,
-            hozAlign: 'left',
-            cellClass: 'px-6 py-4 text-gray-700',
-            headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold border-r border-white text-left',
-          },
-          {
-            title: 'Count',
-            field: 'count',
-            headerSort: false,
-            hozAlign: 'center',
-            cellClass: 'px-6 py-4 text-center text-gray-700',
-            headerClass: 'bg-red-600 text-white px-6 py-4 text-md font-bold text-center',
-          },
-        ],
-      });
-    }
-  }, [data]);
-
   return (
     <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600">
-      <div ref={tableRef} />
+      <ReactTabulator
+        data={data}
+        columns={columns}
+        layout="fitColumns"
+        dataTree={true}
+        dataTreeStartExpanded={true}
+        reactiveData={true}
+        options={{ height: 'auto' }}
+      />
     </div>
   );
 };
