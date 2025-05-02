@@ -1,7 +1,14 @@
 'use client';
 
+declare global {
+  interface Window {
+    Tabulator: any;
+  }
+}
+
 import React, { useEffect, useRef, useState } from 'react';
 import { ReactTabulator } from 'react-tabulator';
+
 import 'react-tabulator/lib/styles.css';
 import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
 import 'tabulator-tables/dist/js/tabulator.min.js';
