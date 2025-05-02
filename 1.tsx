@@ -11,7 +11,7 @@ type RowEntry = {
 };
 
 type GCBTableData = {
-  columns: TableColumn[];
+  column: TableColumn[]; // <- changed from columns to column
   data: RowEntry[];
   total: (string | number)[];
 };
@@ -28,7 +28,7 @@ const TeamGCBExpandableTable: React.FC<Props> = ({ tableData }) => {
   };
 
   const renderHeader = () => {
-    const firstRow = tableData.columns.map((col, i) =>
+    const firstRow = tableData.column.map((col, i) =>
       createElement(
         'th',
         {
@@ -41,7 +41,7 @@ const TeamGCBExpandableTable: React.FC<Props> = ({ tableData }) => {
       )
     );
 
-    const secondRow = tableData.columns
+    const secondRow = tableData.column
       .filter(col => col.sub_columns && col.sub_columns.length)
       .flatMap(col =>
         col.sub_columns!.map((sub, j) =>
