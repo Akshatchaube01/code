@@ -3,8 +3,6 @@ import React, { useState, createElement } from 'react';
 type TableColumn = {
   name: string;
   sub_columns?: string[];
-  rowspan?: number;
-  colspan?: number;
 };
 
 type RowEntry = {
@@ -12,51 +10,44 @@ type RowEntry = {
   details?: (string | number)[][];
 };
 
-type FixedTableData = {
-  column: TableColumn[];
+type GCBTableData = {
+  columns: TableColumn[];
   data: RowEntry[];
   total: (string | number)[];
-  other: {
-    table_id: string;
-    table_heading: string;
-  };
 };
 
 type Props = {
-  tableData: FixedTableData;
+  tableData: GCBTableData;
 };
 
-const ExpandableGCBTable: React.FC<Props> = ({ tableData }) => {
+const TeamGCBExpandableTable: React.FC<Props> = ({ tableData }) => {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
   const toggleExpand = (index: number) => {
     setExpanded(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
-  const headerRows = () => {
-    const firstRow = tableData.column.map((col, i) =>
+  const renderHeader = () => {
+    const firstRow = tableData.columns.map((col, i) =>
       createElement(
         'th',
         {
           key: `head1-${i}`,
           className: 'px-4 py-2 text-left border',
-          rowSpan: col.sub_columns && col.sub_columns.length ? 1 : 2,
           colSpan: col.sub_columns?.length || 1,
+          rowSpan: col.sub_columns?.length ? 1 : 2,
         },
         col.name
       )
     );
 
-    const secondRow = tableData.column
+    const secondRow = tableData.columns
       .filter(col => col.sub_columns && col.sub_columns.length)
       .flatMap(col =>
         col.sub_columns!.map((sub, j) =>
           createElement(
             'th',
-            {
-              key: `head2-${col.name}-${j}`,
-              className: 'px-4 py-2 text-left border',
-            },
+            { key: `subhead-${j}`, className: 'px-4 py-2 text-left border' },
             sub
           )
         )
@@ -64,11 +55,11 @@ const ExpandableGCBTable: React.FC<Props> = ({ tableData }) => {
 
     return [
       createElement('tr', { key: 'row1' }, ...firstRow),
-      secondRow.length ? createElement('tr', { key: 'row2' }, ...secondRow) : null,
+      secondRow.length > 0 ? createElement('tr', { key: 'row2' }, ...secondRow) : null,
     ];
   };
 
-  const mainRow = (row: (string | number)[], index: number) =>
+  const renderMainRow = (row: (string | number)[], index: number) =>
     createElement(
       'tbody',
       { key: `main-${index}` },
@@ -90,24 +81,28 @@ const ExpandableGCBTable: React.FC<Props> = ({ tableData }) => {
       )
     );
 
-  const detailRow = (rows: (string | number)[][], index: number) =>
-    expanded[index] && rows.length
+  const renderDetailRows = (details: (string | number)[][], index: number) =>
+    expanded[index] && details.length > 0
       ? createElement(
           'tbody',
-          { key: `expand-${index}` },
-          ...rows.map((row, i) =>
+          { key: `details-${index}` },
+          ...details.map((detail, j) =>
             createElement(
               'tr',
-              { key: `row-${index}-${i}`, className: 'bg-gray-50 border-t border-red-300' },
-              ...row.map((cell, j) =>
-                createElement('td', { key: `detail-${i}-${j}`, className: 'px-4 py-2' }, cell)
+              { key: `detail-${index}-${j}`, className: 'bg-gray-50 border-t border-red-300' },
+              ...detail.map((cell, i) =>
+                createElement(
+                  'td',
+                  { key: `detail-${j}-${i}`, className: 'px-4 py-2' },
+                  cell
+                )
               )
             )
           )
         )
       : null;
 
-  const totalRow = (row: (string | number)[]) =>
+  const renderTotalRow = (row: (string | number)[]) =>
     createElement(
       'tbody',
       { key: 'total' },
@@ -126,15 +121,14 @@ const ExpandableGCBTable: React.FC<Props> = ({ tableData }) => {
     createElement(
       'table',
       { className: 'min-w-full table-auto text-sm text-left' },
-      createElement('thead', { className: 'bg-red-600 text-white' }, ...headerRows()),
-      ...tableData.data.map((entry, i) => {
-        const baseRow = entry.row;
-        const detailRows = entry.details || [];
-        return [mainRow(baseRow, i), detailRow(detailRows, i)];
-      }).flat(),
-      totalRow(tableData.total)
+      createElement('thead', { className: 'bg-red-600 text-white' }, ...renderHeader()),
+      ...tableData.data.map((entry, i) => [
+        renderMainRow(entry.row, i),
+        renderDetailRows(entry.details || [], i),
+      ]).flat(),
+      renderTotalRow(tableData.total)
     )
   );
 };
 
-export default ExpandableGCBTable;
+export default TeamGCBExpandableTable;
