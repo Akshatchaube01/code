@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createElement } from 'react';
 
 type RowData = {
   column1: string;
@@ -19,63 +19,74 @@ type TableProps = {
 };
 
 const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
-  const [expandedRows, setExpandedRows] = useState<{ [key: number]: boolean }>({});
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
-  const toggleRow = (index: number) => {
-    setExpandedRows(prev => ({ ...prev, [index]: !prev[index] }));
+  const toggleRow = (key: string) => {
+    setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const renderRow = (row: RowData, level: number = 0, parentIndex: string = '') => {
-    const indexKey = `${parentIndex}-${row.column1}-${row.column2}-${row.column3}`;
-    return (
-      <>
-        <tr className="border-t border-red-300 bg-white" key={indexKey}>
-          {[...Array(level)].map((_, i) => (
-            <td key={i} className="px-4 py-2" />
-          ))}
-          <td className="px-4 py-2 font-medium cursor-pointer" colSpan={1} onClick={() => toggleRow(indexKey)}>
-            {row.column1 || row.column2 || row.column3}
-          </td>
-          <td className="px-4 py-2">{row.column2}</td>
-          <td className="px-4 py-2">{row.column3}</td>
-          <td className="px-4 py-2">{row.column4}</td>
-          <td className="px-4 py-2">{row.column5}</td>
-          <td className="px-4 py-2">{row.column6}</td>
-          <td className="px-4 py-2">{row.column7}</td>
-          <td className="px-4 py-2">{row.column}</td>
-        </tr>
-        {expandedRows[indexKey] && row.details1?.map((childRow, i) => (
-          <React.Fragment key={`${indexKey}-child-${i}`}>
-            {renderRow(childRow, level + 1, indexKey)}
-            {expandedRows[`${indexKey}-child-${i}`] && childRow.details2?.map((subChild, j) => (
-              renderRow(subChild, level + 2, `${indexKey}-child-${i}`)
-            ))}
-          </React.Fragment>
-        ))}
-      </>
+  const renderRow = (row: RowData, level: number = 0, keyPrefix: string = ''): any[] => {
+    const rowKey = `${keyPrefix}-${row.column1 || ''}-${row.column2 || ''}-${row.column3 || ''}-${level}`;
+    const indent = '\u00A0'.repeat(level * 4);
+
+    const mainRow = createElement(
+      'tbody',
+      { key: rowKey },
+      createElement(
+        'tr',
+        { className: 'border-t border-red-300 bg-white' },
+        createElement(
+          'td',
+          {
+            className: 'px-4 py-2 font-medium cursor-pointer',
+            onClick: () => toggleRow(rowKey),
+          },
+          indent + (row.column1 || row.column2 || row.column3 || '-')
+        ),
+        createElement('td', { className: 'px-4 py-2' }, row.column2),
+        createElement('td', { className: 'px-4 py-2' }, row.column3),
+        createElement('td', { className: 'px-4 py-2' }, row.column4),
+        createElement('td', { className: 'px-4 py-2' }, row.column5),
+        createElement('td', { className: 'px-4 py-2' }, row.column6),
+        createElement('td', { className: 'px-4 py-2' }, row.column7),
+        createElement('td', { className: 'px-4 py-2' }, row.column)
+      )
     );
+
+    const children: any[] = [];
+
+    if (expandedRows[rowKey]) {
+      row.details1?.forEach((child, i) => {
+        children.push(...renderRow(child, level + 1, `${rowKey}-child${i}`));
+      });
+      row.details2?.forEach((child, j) => {
+        children.push(...renderRow(child, level + 2, `${rowKey}-subchild${j}`));
+      });
+    }
+
+    return [mainRow, ...children];
   };
 
-  return (
-    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm">
-      <table className="min-w-full table-auto">
-        <thead className="bg-red-600 text-white">
-          <tr>
-            {columns.map((col, i) => (
-              <th key={i} className="px-4 py-3 text-left">{col.name}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, idx) => renderRow(row, 0, `${idx}`))}
-        </tbody>
-      </table>
-    </div>
+  return createElement(
+    'div',
+    { className: 'overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm' },
+    createElement(
+      'table',
+      { className: 'min-w-full table-auto' },
+      createElement(
+        'thead',
+        { className: 'bg-red-600 text-white' },
+        createElement(
+          'tr',
+          null,
+          ...columns.map((col, i) =>
+            createElement('th', { key: `col-${i}`, className: 'px-4 py-3 text-left' }, col.name)
+          )
+        )
+      ),
+      ...data.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))
+    )
   );
 };
 
 export default ExpandableUtilizationTable;
-
-
-
-<ExpandableUtilizationTable columns={expandable_tables_data2[0].columns1} data={expandable_tables_data2[0].data1} />
