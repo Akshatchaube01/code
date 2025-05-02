@@ -8,7 +8,6 @@ declare global {
 
 import React, { useEffect, useRef, useState } from 'react';
 import { ReactTabulator } from 'react-tabulator';
-
 import 'react-tabulator/lib/styles.css';
 import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
 import 'tabulator-tables/dist/js/tabulator.min.js';
@@ -39,35 +38,35 @@ const AssignmentTable = () => {
         const row = cell.getRow();
         const rowIndex = row.getPosition();
 
+        // Remove existing nested table if expanded
         if (expandedRows.current.has(rowIndex)) {
-          // Collapse
-          const children = row.getElement().querySelectorAll('.child-table-wrapper');
-          children.forEach(el => el.remove());
+          const existing = row.getElement().querySelector('.child-table-wrapper');
+          if (existing) existing.remove();
           expandedRows.current.delete(rowIndex);
           cell.getElement().innerHTML = '<button class="expand-btn">▶</button>';
-        } else {
-          // Expand
-          const data = row.getData();
-          if (data.children) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'child-table-wrapper';
-            wrapper.style.padding = '10px';
+          return;
+        }
 
-            new window.Tabulator(wrapper, {
-              data: data.children,
-              columns: [
-                { title: 'Subproject', field: 'name', sorter: 'string' },
-                { title: 'Status', field: 'status', sorter: 'string' },
-              ],
-              layout: 'fitColumns',
-              autoResize: true,
-              height: 'auto',
-            });
+        // Expand if children exist
+        const data = row.getData();
+        if (data.children && data.children.length > 0) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'child-table-wrapper';
+          wrapper.style.padding = '10px';
 
-            row.getElement().appendChild(wrapper);
-            expandedRows.current.add(rowIndex);
-            cell.getElement().innerHTML = '<button class="expand-btn">▼</button>';
-          }
+          new window.Tabulator(wrapper, {
+            data: data.children,
+            columns: [
+              { title: 'Subproject', field: 'name', sorter: 'string' },
+              { title: 'Status', field: 'status', sorter: 'string' },
+            ],
+            layout: 'fitColumns',
+            autoResize: true,
+          });
+
+          row.getElement().appendChild(wrapper);
+          expandedRows.current.add(rowIndex);
+          cell.getElement().innerHTML = '<button class="expand-btn">▼</button>';
         }
       },
     },
@@ -92,7 +91,11 @@ const AssignmentTable = () => {
         { name: 'Market Risk', status: 'In Progress' },
       ],
     },
-    { project_type: 'Execution Only', project_count: 1 },
+    {
+      project_type: 'Execution Only',
+      project_count: 1,
+      children: [],
+    },
   ];
 
   useEffect(() => {
