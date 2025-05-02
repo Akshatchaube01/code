@@ -1,12 +1,14 @@
 import React, { useState, createElement } from 'react';
 
+type TableColumn = {
+  name: string;
+  sub_columns?: string[];
+  rowspan?: number;
+  colspan?: number;
+};
+
 type FixedTableData = {
-  column: {
-    name: string;
-    sub_columns?: string[];
-    rowspan?: number;
-    colspan?: number;
-  }[];
+  column: TableColumn[];
   data: (string | number)[][];
   total: (string | number)[];
   other: {
