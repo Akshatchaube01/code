@@ -6,32 +6,61 @@ import 'react-tabulator/lib/styles.css';
 import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
 import 'tabulator-tables/dist/js/tabulator.min.js';
 
+type SubProject = {
+  name: string;
+  status: string;
+};
+
 type Project = {
   project_type: string;
   project_count: number;
-  children?: Project[];
+  children?: SubProject[];
 };
 
 const AssignmentTable = () => {
   const [myEffortsData, setData] = useState<Project[]>([]);
   const tableRef = useRef<any>(null);
+  const expandedRows = useRef<Set<number>>(new Set());
 
   const columns = [
     {
       title: '',
-      formatter: (cell: any) => {
-        const row = cell.getRow();
-        const hasChildren = row.getData().children;
-        return hasChildren
-          ? `<button class="expand-btn">▶</button>`
-          : '';
-      },
-      width: 50,
+      formatter: () => '<button class="expand-btn">▶</button>',
+      width: 60,
       hozAlign: 'center',
       cellClick: (e: any, cell: any) => {
         const row = cell.getRow();
-        if (row.getData().children) {
-          row.treeToggle();
+        const rowIndex = row.getPosition();
+
+        if (expandedRows.current.has(rowIndex)) {
+          // Collapse
+          const children = row.getElement().querySelectorAll('.child-table-wrapper');
+          children.forEach(el => el.remove());
+          expandedRows.current.delete(rowIndex);
+          cell.getElement().innerHTML = '<button class="expand-btn">▶</button>';
+        } else {
+          // Expand
+          const data = row.getData();
+          if (data.children) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'child-table-wrapper';
+            wrapper.style.padding = '10px';
+
+            new window.Tabulator(wrapper, {
+              data: data.children,
+              columns: [
+                { title: 'Subproject', field: 'name', sorter: 'string' },
+                { title: 'Status', field: 'status', sorter: 'string' },
+              ],
+              layout: 'fitColumns',
+              autoResize: true,
+              height: 'auto',
+            });
+
+            row.getElement().appendChild(wrapper);
+            expandedRows.current.add(rowIndex);
+            cell.getElement().innerHTML = '<button class="expand-btn">▼</button>';
+          }
         }
       },
     },
@@ -44,19 +73,19 @@ const AssignmentTable = () => {
       project_type: 'Governance and Control',
       project_count: 2,
       children: [
-        { project_type: 'Risk Framework', project_count: 1 },
-        { project_type: 'Compliance Review', project_count: 1 },
+        { name: 'Risk Review', status: 'Complete' },
+        { name: 'Audit Setup', status: 'Pending' },
       ],
     },
     {
-      project_type: 'Model Development (New)',
-      project_count: 10,
+      project_type: 'Model Development',
+      project_count: 3,
       children: [
-        { project_type: 'Credit Risk Model', project_count: 6 },
-        { project_type: 'Market Risk Model', project_count: 4 },
+        { name: 'Credit Risk', status: 'In Progress' },
+        { name: 'Market Risk', status: 'In Progress' },
       ],
     },
-    { project_type: 'Model Execution', project_count: 15 },
+    { project_type: 'Execution Only', project_count: 1 },
   ];
 
   useEffect(() => {
@@ -71,10 +100,9 @@ const AssignmentTable = () => {
         data={myEffortsData}
         layout="fitColumns"
         options={{
-          dataTree: true,
-          dataTreeStartExpanded: false,
+          pagination: true,
+          paginationSize: 5,
           movableColumns: true,
-          clipboard: true,
         }}
       />
     </div>
