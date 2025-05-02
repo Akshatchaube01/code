@@ -29,28 +29,29 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     const rowKey = `${keyPrefix}-${row.column1 || ''}-${row.column2 || ''}-${row.column3 || ''}-${level}`;
     const indent = '\u00A0'.repeat(level * 4);
 
+    const cells = [
+      createElement(
+        'td',
+        {
+          key: 'col1',
+          className: 'px-4 py-2 font-medium cursor-pointer',
+          onClick: () => toggleRow(rowKey),
+        },
+        level === 0 ? row.column1 : ''
+      ),
+      createElement('td', { key: 'col2', className: 'px-4 py-2' }, level > 0 ? indent + (row.column2 || '-') : row.column2),
+      createElement('td', { key: 'col3', className: 'px-4 py-2' }, row.column3),
+      createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4),
+      createElement('td', { key: 'col5', className: 'px-4 py-2' }, row.column5),
+      createElement('td', { key: 'col6', className: 'px-4 py-2' }, row.column6),
+      createElement('td', { key: 'col7', className: 'px-4 py-2' }, row.column7),
+      createElement('td', { key: 'col8', className: 'px-4 py-2' }, row.column),
+    ];
+
     const mainRow = createElement(
       'tbody',
       { key: rowKey },
-      createElement(
-        'tr',
-        { className: 'border-t border-red-300 bg-white' },
-        createElement(
-          'td',
-          {
-            className: 'px-4 py-2 font-medium cursor-pointer',
-            onClick: () => toggleRow(rowKey),
-          },
-          indent + (row.column1 || row.column2 || row.column3 || '-')
-        ),
-        createElement('td', { className: 'px-4 py-2' }, row.column2),
-        createElement('td', { className: 'px-4 py-2' }, row.column3),
-        createElement('td', { className: 'px-4 py-2' }, row.column4),
-        createElement('td', { className: 'px-4 py-2' }, row.column5),
-        createElement('td', { className: 'px-4 py-2' }, row.column6),
-        createElement('td', { className: 'px-4 py-2' }, row.column7),
-        createElement('td', { className: 'px-4 py-2' }, row.column)
-      )
+      createElement('tr', { className: 'border-t border-red-300 bg-white' }, ...cells)
     );
 
     const children: any[] = [];
