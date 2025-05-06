@@ -1,149 +1,58 @@
-'use client'
+'use client';
 
-import React, { useEffect, useRef, useState } from 'react'
-import { ReactTabulator } from 'react-tabulator'
-import type { ReactTabulatorOptions } from 'react-tabulator'
-import 'react-tabulator/lib/styles.css'
-import 'tabulator-tables/dist/css/tabulator.min.css'
-import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css'
-import axios from 'axios'
+import React from 'react';
+import { ReactTabulator } from 'react-tabulator';
+import 'tabulator-tables/dist/css/tabulator.min.css';
+import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
 
-interface ProjectL2 {
-  project_type_id: number
-  project_type_name: string
+type Assignment = {
+  assignment_id: number;
+  psid: string;
+  assigned_fte: number;
+  start_date: string;
+  end_date: string;
+  disable: boolean;
+  is_past: boolean;
+};
+
+interface AssignmentTableProps {
+  data: Assignment[];
 }
 
-interface ProjectTypeOption {
-  project_type_id: number
-  project_type_name: string
-}
+const columns = [
+  { title: 'Assignment ID', field: 'assignment_id', sorter: 'number', headerFilter: 'input' },
+  { title: 'PSID', field: 'psid', sorter: 'string', headerFilter: 'input' },
+  { title: 'Assigned FTE', field: 'assigned_fte', sorter: 'number', headerFilter: 'input' },
+  { title: 'Start Date', field: 'start_date', sorter: 'string', headerFilter: 'input' },
+  { title: 'End Date', field: 'end_date', sorter: 'string', headerFilter: 'input' },
+  { title: 'Disabled', field: 'disable', sorter: 'boolean' },
+  { title: 'Is Past', field: 'is_past', sorter: 'boolean' },
+];
 
-interface ProjectL2Props {
-  data: ProjectL2[]
-  projectTypes: ProjectTypeOption[]
-}
-
-const Table = ({ data, projectTypes }: ProjectL2Props) => {
-  const tableRef = useRef<any>(null)
-  const [tableData, setTableData] = useState<ProjectL2[]>(data)
-
-  useEffect(() => {
-    setTableData(data)
-  }, [data])
-
-  const handleDelete = async (rowData: ProjectL2) => {
-    setTableData((prev) => prev.filter((r) => r.project_type_id !== rowData.project_type_id))
-    try {
-      const res = await axios.delete(`http://127.0.0.1:8000/propel/tasks/${rowData.project_type_id}`)
-      console.log(res)
-    } catch (error) {
-      console.log('Error in delete', error)
-    }
-  }
-
-  const handleSave = async (rowData: ProjectL2) => {
-    try {
-      await axios.put('http://127.0.0.1:8000/propel/tasks/', {
-        task_id: rowData.project_type_id,
-        task_name: rowData.project_type_name,
-      })
-      console.log('Save button clicked')
-    } catch (error) {
-      console.log('Error in save', error)
-    }
-  }
-
-  const dropdownMap = projectTypes.reduce((acc, item) => {
-    acc[item.project_type_id] = item.project_type_name
-    return acc
-  }, {} as Record<number, string>)
-
-  const columns = [
-    {
-      title: 'ID',
-      field: 'project_type_id',
-      width: 100,
-      hozAlign: 'center',
-      headerFilter: 'input',
-    },
-    {
-      title: 'Project Type',
-      field: 'project_type_id',
-      sorter: 'number',
-      headerFilter: 'select',
-      editor: 'select',
-      editorParams: {
-        values: dropdownMap,
-      },
-      formatter: (cell: any) => {
-        const id = cell.getValue()
-        const label = dropdownMap[id] || `ID: ${id}`
-        return `
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-            ${label}
-          </span>`
-      },
-    },
-    {
-      title: 'Project Type Name',
-      field: 'project_type_name',
-      sorter: 'string',
-      headerFilter: 'input',
-      editor: 'input',
-    },
-    {
-      title: 'Action',
-      field: 'actions',
-      width: 150,
-      hozAlign: 'center',
-      formatter: () =>
-        `<button class='save-btn bg-blue-600 text-white px-2 py-1 rounded mr-1'>Save</button>
-         <button class='delete-btn bg-red-600 text-white px-2 py-1 rounded'>Delete</button>`,
-      cellClick: function (e: any, cell: any) {
-        const rowData: ProjectL2 = cell.getRow().getData()
-        const target = e.target
-        if (target.classList.contains('delete-btn')) {
-          handleDelete(rowData)
-        } else if (target.classList.contains('save-btn')) {
-          handleSave(rowData)
-        }
-      },
-    },
-  ]
-
-  const options: ReactTabulatorOptions = {
-    layout: 'fitColumns',
-    pagination: true,
-    paginationSize: 10,
-    movableColumns: true,
-    resizableRows: true,
-    reactiveData: true,
-    height: 'auto',
-  }
-
+export default function AssignmentTable({ data }: AssignmentTableProps) {
   return (
-    <div>
-      <ReactTabulator ref={tableRef} data={tableData} columns={columns} options={options} />
+    <div className="p-4">
+      <div className="mb-4 flex gap-4 flex-wrap">
+        <button className="px-4 py-2 bg-blue-100 text-gray-800 rounded hover:bg-blue-300 transition">Copy</button>
+        <button className="px-4 py-2 bg-blue-100 text-gray-800 rounded hover:bg-blue-300 transition">Download CSV</button>
+        <button className="px-4 py-2 bg-blue-100 text-gray-800 rounded hover:bg-blue-300 transition">Download Excel</button>
+        <button className="px-4 py-2 bg-blue-100 text-gray-800 rounded hover:bg-blue-300 transition">Download PDF</button>
+        <button className="px-4 py-2 bg-blue-100 text-gray-800 rounded hover:bg-blue-300 transition">Print</button>
+      </div>
+
+      <div className="border border-gray-300 rounded shadow-sm overflow-x-auto">
+        <ReactTabulator
+          data={data}
+          columns={columns}
+          layout="fitColumns"
+          options={{
+            pagination: true,
+            paginationSize: 10,
+            movableColumns: true,
+            clipboard: true,
+          }}
+        />
+      </div>
     </div>
-  )
-}
-
-export const ProjectL2Table = (props: ProjectL2Props) => {
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  if (!isClient) return null
-
-  return (
-    <section className='p-4 bg-white rounded shadow-lg'>
-      <h2 className='text-2xl font-bold underline mb-4'>Edit Project Type L2</h2>
-      <Table {...props} />
-    </section>
-  )
+  );
 }
