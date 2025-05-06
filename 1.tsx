@@ -1,130 +1,114 @@
-'use client';
+'use client'
 
-import React, { useEffect, useRef, useState } from 'react';
-import { ReactTabulator } from 'react-tabulator';
-import type { ReactTabulatorOptions } from 'react-tabulator';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import axios from '@/components/gra-propel/CustomAxios';
+import { ProjectL2Table } from '@/components/gra-propel/add_Modify_data/project_type_L2/table-projectTym';
+import { Autocomplete, TextField } from '@mui/material';
 
-import 'tabulator-tables/dist/css/tabulator.min.css';
-import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
-
-interface ProjectTypeL2 {
-  project_type_12_id: number;
-  project_type_12_name: string;
+interface ProjectL2 {
   project_type_id: number;
-  project_type_name?: string;
+  project_type_name: string;
 }
 
-interface ProjectTypeL2TableProps {
-  data: ProjectTypeL2[];
-  onUpdate: () => void;
+interface OptionType {
+  id: number;
+  name: string;
 }
 
-const Table = ({ data, onUpdate }: ProjectTypeL2TableProps) => {
-  const tableRef = useRef<any>(null);
+const ProjectL2Page = () => {
+  const [apiurls, setApiUrls] = useState<any>(null);
+  const [projectTypeName, setProjectTypeName] = useState('');
+  const [selectedProjectType, setSelectedProjectType] = useState<OptionType | null>(null);
+  const [projectL2List, setProjectL2List] = useState<ProjectL2[]>([]);
+  const [projectTypeList, setProjectTypeList] = useState<OptionType[]>([]);
 
-  const handleDelete = async (id: number) => {
-    try {
-      await axios.delete(`http://127.0.0.1:8000/propel/project_type_12/${id}`);
-      onUpdate();
-    } catch (error) {
-      console.error('Delete error:', error);
-    }
-  };
+  useEffect(() => {
+    const fetchUrls = async () => {
+      const res = await fetch('/api-routes.json');
+      const data = await res.json();
+      setApiUrls(data);
+    };
+    fetchUrls();
+  }, []);
 
-  const handleSave = async (rowData: ProjectTypeL2) => {
-    try {
-      await axios.put(`http://127.0.0.1:8000/propel/project_type_12/${rowData.project_type_12_id}`, {
-        project_type_12_name: rowData.project_type_12_name,
-        project_type_id: rowData.project_type_id,
+  useEffect(() => {
+    axios
+      .get('http://127.0.0.1:8000/propel/project_type_12/')
+      .then((res) => {
+        setProjectL2List(res.data.data);
+        console.log(res.data.data);
+      })
+      .catch((err) => {
+        console.log('Error in loading data');
       });
-      onUpdate();
-    } catch (error) {
-      console.error('Save error:', error);
-    }
-  };
+  }, []);
 
-  const columns = [
-    {
-      title: 'ID',
-      field: 'project_type_12_id',
-      hozAlign: 'center',
-      width: 70,
-      sorter: 'number',
-      headerFilter: 'input',
-    },
-    {
-      title: 'Project Type L2',
-      field: 'project_type_12_name',
-      editor: 'input',
-      sorter: 'string',
-      headerFilter: 'input',
-    },
-    {
-      title: 'Project Type ID',
-      field: 'project_type_id',
-      editor: 'input',
-      sorter: 'number',
-      hozAlign: 'center',
-    },
-    {
-      title: 'Actions',
-      field: 'actions',
-      hozAlign: 'center',
-      width: 150,
-      formatter: () => `
-        <button class='save-btn bg-blue-600 text-white px-2 py-1 rounded mr-1'>Save</button>
-        <button class='delete-btn bg-red-600 text-white px-2 py-1 rounded'>Delete</button>
-      `,
-      cellClick: function (e: any, cell: any) {
-        const rowData: ProjectTypeL2 = cell.getRow().getData();
-        const target = e.target;
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [typesRes] = await Promise.all([
+          axios.get('http://127.0.0.1:8000/propel/project_type_12/'),
+        ]);
+        setProjectTypeList(
+          typesRes.data.data.map((item: any) => ({
+            id: Number(item.project_type_id),
+            name: item.project_type_name,
+          }))
+        );
+      } catch (error) {
+        console.log('Error', error);
+      }
+    };
+    fetchDropdownData();
+  }, []);
 
-        if (target.classList.contains('delete-btn')) {
-          handleDelete(rowData.project_type_12_id);
-        } else if (target.classList.contains('save-btn')) {
-          handleSave(rowData);
-        }
-      },
-    },
-  ];
+  const addProjectL2 = async () => {
+    if (projectTypeName.length === 0) return;
+    const payload = {
+      project_type_id: selectedProjectType?.id,
+      project_type_name: projectTypeName,
+    };
 
-  const options: ReactTabulatorOptions = {
-    layout: 'fitColumns',
-    pagination: true,
-    paginationSize: 8,
-    movableColumns: true,
-    resizableRows: true,
-    reactiveData: true,
-    height: '330px',
+    const res = await axios.post('http://127.0.0.1:8000/propel/project_type_12/', payload);
+    setProjectTypeName('');
+    setSelectedProjectType(null);
+    console.log(res);
   };
 
   return (
-    <div>
-      <ReactTabulator ref={tableRef} data={data} columns={columns} options={options} />
+    <div className='p-6 max-w-8xl mx-auto'>
+      <div className='border rounded p-6 shadow-md mb-6 bg-white'>
+        <h2 className='text-2xl font-bold mb-6 text-blue-800'>Add New Project</h2>
+        <input
+          type='text'
+          placeholder='Enter new project type name'
+          value={projectTypeName}
+          onChange={(e) => setProjectTypeName(e.target.value)}
+          className='leading-relaxed tracking-wider border p-2 rounded w-full mb-4'
+        />
+        <h2 className='text-2xl font-bold mb-6 text-blue-800'>Project Type ID</h2>
+        <Autocomplete
+          options={projectTypeList}
+          getOptionLabel={(option) => option.name}
+          value={selectedProjectType}
+          onChange={(event, newValue) => setSelectedProjectType(newValue)}
+          renderInput={(params) => (
+            <TextField {...params} label='Select Project Type ID' variant='outlined' fullWidth size='small' />
+          )}
+        />
+        <button
+          onClick={addProjectL2}
+          className='mt-4 leading-relaxed tracking-wider bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+        >
+          Add ProjectL2
+        </button>
+      </div>
+
+      <div className='border rounded p-6 shadow-md mb-6 bg-white'>
+        <ProjectL2Table data={projectL2List} />
+      </div>
     </div>
   );
 };
 
-export const TableComponent = ({
-  data,
-  onUpdate,
-}: {
-  data: ProjectTypeL2[];
-  onUpdate: () => void;
-}) => {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) return null;
-
-  return (
-    <section className="p-4 bg-white rounded shadow-lg">
-      <h2 className="font-semibold text-lg mb-4 underline">Edit Project Type L2</h2>
-      <Table data={data} onUpdate={onUpdate} />
-    </section>
-  );
-};
+export default ProjectL2Page;
