@@ -1,162 +1,126 @@
 'use client'
 
+import React, { useEffect, useRef, useState } from 'react';
+import { ReactTabulator, ReactTabulatorOptions } from 'react-tabulator';
+import 'react-tabulator/lib/styles.css';
+import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css';
+import 'tabulator-tables/dist/js/tabulator.min.js';
 import axios from '@/components/gra-propel/CustomAxios';
-import React, { useEffect, useState } from 'react';
-import { differenceInCalendarDays } from 'date-fns';
-import {
-  TextField,
-  Autocomplete,
-  Button
-} from '@mui/material';
-import { TableComponent } from '@/components/gra-propel/userInputs/table-holidays';
-
-interface Employee {
-  psid: string;
-  employee_name: string;
-}
 
 interface Holiday {
-  id: number;
   employee_name: string;
   holiday_start_date: string;
   holiday_end_date: string;
-  total_days: number;
+  leave_count: number;
   holiday_halfday: boolean;
   holiday_type: string;
+  disable: boolean;
+  holiday_id: number;
 }
 
-const Page = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [holiday_start_date, setStartDate] = useState('');
-  const [holiday_end_date, setEndDate] = useState('');
-  const [holiday_halfday, setIsHalfDay] = useState(false);
-  const [holiday_type, setLeaveType] = useState('Leave');
-  const [total_days, setTotalDays] = useState(0);
-  const [search, setSearch] = useState('');
-  const [holidayData, setHolidayData] = useState<Holiday[]>([]);
+interface HolidayTableProps {
+  data: Holiday[];
+}
 
-  useEffect(() => {
-    fetchHolidayData();
-    axios.get('http://127.0.0.1:8000/propel/employees')
-      .then(res => setEmployees(res.data.data))
-      .catch(err => console.log("error in loading"));
-  }, []);
+const Table = ({ data }: HolidayTableProps) => {
+  const tableRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (holiday_start_date && holiday_end_date) {
-      let days = differenceInCalendarDays(new Date(holiday_end_date), new Date(holiday_start_date)) + 1;
-      if (days < 0) days = 0;
-      setTotalDays(holiday_halfday ? days / 2 : days);
-    } else {
-      setTotalDays(0);
-    }
-  }, [holiday_start_date, holiday_end_date, holiday_halfday]);
-
-  const handleSubmit = async () => {
+  const handleDelete = async (id: number) => {
     try {
-      const payload = {
-        rec_id: 0,
-        psid: selectedEmployee,
-        holiday_start_date,
-        holiday_end_date,
-        holiday_halfday,
-        holiday_type
-      };
-      await axios.post('http://127.0.0.1:8000/propel/register_holidays/', payload);
-      alert('Leave registered successfully');
-      fetchHolidayData();
+      await axios.delete(`/propel/register_holidays/${id}`);
+      alert('Record deleted successfully');
     } catch (err) {
-      console.log(err);
-      alert('Error submitting leave');
+      console.error('Delete error:', err);
+      alert('Failed to delete record');
     }
   };
 
-  const fetchHolidayData = () => {
-    axios.get('http://127.0.0.1:8000/propel/register_holidays/')
-      .then(res => setHolidayData(res.data))
-      .catch(err => console.log('Error in loading data'));
+  const handleSave = async (rowData: Holiday) => {
+    try {
+      const payload = {
+        rec_id: rowData.holiday_id,
+        psid: '', // optional: attach psid if needed
+        holiday_start_date: rowData.holiday_start_date,
+        holiday_end_date: rowData.holiday_end_date,
+        holiday_halfday: rowData.holiday_halfday,
+        holiday_type: rowData.holiday_type
+      };
+      await axios.post('/propel/register_holidays/', payload);
+      alert('Record updated successfully');
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('Failed to update record');
+    }
+  };
+
+  const columns = [
+    { title: 'Employee Name', field: 'employee_name', hozAlign: 'center', sorter: 'input', headerFilter: 'input' },
+    { title: 'Start Date', field: 'holiday_start_date', sorter: 'string', hozAlign: 'center', headerFilter: 'input' },
+    { title: 'End Date', field: 'holiday_end_date', sorter: 'string', hozAlign: 'center', headerFilter: 'input' },
+    { title: 'Total Days', field: 'leave_count', sorter: 'number', hozAlign: 'center', headerFilter: 'input' },
+    {
+      title: 'Half Day',
+      field: 'holiday_halfday',
+      sorter: 'boolean',
+      hozAlign: 'center',
+      formatter: (cell: any) => (cell.getValue() ? 'Half Day' : 'Full Day')
+    },
+    { title: 'Leave Type', field: 'holiday_type', sorter: 'string', hozAlign: 'center', headerFilter: 'input' },
+    {
+      title: 'Action',
+      formatter: (cell: any) => {
+        const row = cell.getRow().getData();
+        return `
+          <button ${row.disable ? '' : 'disabled'} style="margin-right: 6px; background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: ${row.disable ? 'pointer' : 'not-allowed'}">Save</button>
+          <button ${row.disable ? '' : 'disabled'} style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: ${row.disable ? 'pointer' : 'not-allowed'}">Delete</button>
+        `;
+      },
+      cellClick: (e: any, cell: any) => {
+        const rowData = cell.getRow().getData();
+        const clickedButton = (e.target as HTMLElement).innerText;
+        if (rowData.disable) {
+          if (clickedButton === 'Save') handleSave(rowData);
+          else if (clickedButton === 'Delete') handleDelete(rowData.holiday_id);
+        }
+      },
+      hozAlign: 'center'
+    }
+  ];
+
+  const options: ReactTabulatorOptions = {
+    layout: 'fitColumns',
+    pagination: true,
+    paginationSize: 6,
+    reactiveData: true,
   };
 
   return (
-    <div className='p-6 max-w-8xl mx-auto'>
-      <div className='border rounded p-6 shadow-md mb-6 bg-white'>
-        <div className='grid grid-cols-1 md:grid-cols-6 gap-4 items-end'>
-          <div className='col-span-2'>
-            <label className='text-blue-700 font-bold text-2xl'>Register Holidays</label>
-            <Autocomplete
-              options={employees}
-              value={employees.find((e) => e.psid === selectedEmployee) || null}
-              getOptionLabel={(option) => option.employee_name}
-              onChange={(e, newValue) => setSelectedEmployee(newValue?.psid || '')}
-              renderInput={(params) => <TextField {...params} label="Select Employee" />}
-              fullWidth
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium mb-1'>Leave Start Date</label>
-            <input
-              type="date"
-              className='w-full border rounded p-2'
-              value={holiday_start_date}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium mb-1'>Leave End Date</label>
-            <input
-              type="date"
-              className='w-full border rounded p-2'
-              value={holiday_end_date}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <input
-              type="checkbox"
-              className='h-5 w-5'
-              checked={holiday_halfday}
-              onChange={() => setIsHalfDay(!holiday_halfday)}
-            />
-            <label className='block text-sm font-medium mb-1'>Half day</label>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium mb-1'>Total Days</label>
-            <div className='p-2 border rounded bg-gray-100'>{total_days}</div>
-          </div>
-
-          <div>
-            <label className='block text-sm font-medium mb-1'>Leave Type</label>
-            <select
-              className='w-full border rounded p-2'
-              value={holiday_type}
-              onChange={(e) => setLeaveType(e.target.value)}
-            >
-              <option value="Leave">Leave</option>
-              <option value="Holiday">Holiday</option>
-            </select>
-          </div>
-        </div>
-
-        <div className='pt-4'>
-          <button
-            onClick={handleSubmit}
-            className='bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700'
-          >
-            Submit
-          </button>
-        </div>
-
-        <div className='mt-8'>
-          <TableComponent holidayData={holidayData} />
-        </div>
-      </div>
+    <div>
+      <ReactTabulator
+        ref={tableRef}
+        data={data}
+        columns={columns}
+        options={options}
+      />
     </div>
   );
 };
 
-export default Page;
+export const TableComponent = ({ holidayData }: { holidayData: Holiday[] }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
+  return (
+    <section className='p-4 bg-white rounded shadow-lg'>
+      <h2 className='font-semibold leading-relaxed tracking-wide text-2xl font-bold mb-4'>
+        Holiday Records
+      </h2>
+      <Table data={holidayData} />
+    </section>
+  );
+};
