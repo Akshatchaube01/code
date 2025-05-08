@@ -55,15 +55,27 @@ const Page = () => {
 
   const handleSubmit = async () => {
     try {
-      const payload = {
-        rec_id: 0,
-        psid: selectedEmployee,
-        holiday_start_date,
-        holiday_end_date,
-        holiday_halfday,
-        holiday_type
-      };
-      await axios.post('http://127.0.0.1:8000/propel/register_holidays/', payload);
+      const payloads = [];
+      let days = differenceInCalendarDays(new Date(holiday_end_date), new Date(holiday_start_date)) + 1;
+      for (let i = 0; i < days; i++) {
+        const date = new Date(holiday_start_date);
+        date.setDate(date.getDate() + i);
+        const formattedDate = date.toISOString().split('T')[0];
+
+        payloads.push({
+          rec_id: 0,
+          psid: selectedEmployee,
+          holiday_start_date: formattedDate,
+          holiday_end_date: formattedDate,
+          holiday_halfday,
+          holiday_type
+        });
+      }
+
+      for (const payload of payloads) {
+        await axios.post('http://127.0.0.1:8000/propel/register_holidays/', payload);
+      }
+
       alert('Leave registered successfully');
       fetchHolidayData();
     } catch (err) {
