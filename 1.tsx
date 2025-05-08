@@ -1,162 +1,181 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import * as Select from '@radix-ui/react-select'
-import axios from '@/components/gra-propel/CustomAxios'
-import TableComponent from '@/components/gra-propel/userInputs/table-leadException'
-import { CheckIcon, ChevronDownIcon, UserCheck } from 'lucide-react'
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { differenceInCalendarDays } from 'date-fns';
+import {
+  TextField,
+  Autocomplete,
+  Button
+} from '@mui/material';
+import { TableComponent } from '@/components/gra-propel/userInputs/table-holidays';
 
-interface LeadOption {
-  value: string
-  label: string
+interface Employee {
+  psid: string;
+  employee_name: string;
 }
 
-interface LeadException {
-  psid: string
-  employee_name: string
+interface Holiday {
+  id: number;
+  employee_name: string;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  half_day: boolean;
+  leave_type: string;
 }
 
 const Page = () => {
-  const [selectedLead, setSelectedLead] = useState<LeadOption | null>(null)
-  const [search, setSearch] = useState('')
-  const [leadOptions, setLeadOptions] = useState<LeadOption[]>([])
-  const [exceptions, setExceptions] = useState<LeadException[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [start_date, setStartDate] = useState('');
+  const [end_date, setEndDate] = useState('');
+  const [is_half_day, setIsHalfDay] = useState(false);
+  const [leave_type, setLeaveType] = useState('Leave');
+  const [total_days, setTotalDays] = useState(0);
+  const [search, setSearch] = useState('');
+  const [holidayData, setHolidayData] = useState<Holiday[]>([]);
+
+  const fetchHolidayData = () => {
+    axios.get('/propel/register_holidays?start=1&size=100')
+      .then(res => setHolidayData(res.data.data))
+      .catch(err => console.log('Error in loading data', err));
+  };
 
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        const res = await axios.get('http://127.0.0.1:8000/propel/employees/', {
-          params: {
-            order: 'descending',
-            field: 'gcb',
-            condition: 'gt',
-            value: 4,
-            include_special_leads: false,
-            functional_manager_flow: false
-          }
-        })
-
-        const options = res.data.data.map((lead: any) => ({
-          value: lead.psid,
-          label: `${lead.employee_name} (${lead.psid})`
-        }))
-
-        setLeadOptions(options)
-      } catch (err) {
-        console.error(err)
-      }
-    }
-
-    fetchLeads()
-  }, [])
+    fetchHolidayData();
+    axios.get('/test1.json') // Replace with real endpoint if available
+      .then(res => setEmployees(res.data))
+      .catch(err => console.log("error in loading employees"));
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get('http://127.0.0.1:8000/propel/lead_exceptions/')
-        setExceptions(res.data.data)
-      } catch (err) {
-        console.error(err)
-      }
+    if (start_date && end_date) {
+      let days = differenceInCalendarDays(new Date(end_date), new Date(start_date)) + 1;
+      if (days < 0) days = 0;
+      setTotalDays(is_half_day ? days / 2 : days);
+    } else {
+      setTotalDays(0);
     }
+  }, [start_date, end_date, is_half_day]);
 
-    fetchData()
-  }, [])
-
-  const handleAdd = async () => {
-    if (!selectedLead) return
-
+  const handleSubmit = async () => {
     try {
-      await axios.post('http://127.0.0.1:8000/propel/lead_exceptions/', {
-        psid: selectedLead.value,
-        employee_name: selectedLead.label
-      })
-
-      setExceptions((prev) => [
-        ...prev,
-        { psid: selectedLead.value, employee_name: selectedLead.label }
-      ])
-
-      setSelectedLead(null)
-      setSearch('')
+      const payload = {
+        rec_id: 0,
+        psid: selectedEmployee,
+        holiday_start_date: start_date,
+        holiday_end_date: end_date,
+        holiday_halfday: is_half_day,
+        holiday_type: leave_type
+      };
+      await axios.post('/propel/register_holidays', payload);
+      alert('Leave registered successfully');
+      fetchHolidayData();
     } catch (err) {
-      console.error(err)
+      console.log(err);
+      alert('Error submitting leave');
     }
-  }
+  };
 
-  const filteredOptions = leadOptions.filter((option) =>
-    option.label.toLowerCase().includes(search.toLowerCase())
-  )
+  const deleteHoliday = async (id: number) => {
+    try {
+      await axios.delete(`/propel/register_holidays/${id}`);
+      alert('Deleted successfully');
+      fetchHolidayData();
+    } catch (err) {
+      console.log('Error deleting record', err);
+    }
+  };
+
+  const getHolidayById = async (id: number) => {
+    try {
+      const res = await axios.get(`/propel/register_holidays/${id}`);
+      console.log(res.data);
+    } catch (err) {
+      console.log('Error fetching by ID', err);
+    }
+  };
 
   return (
     <div className='p-6 max-w-8xl mx-auto'>
       <div className='border rounded p-6 shadow-md mb-6 bg-white'>
-        <h2 className='text-2xl font-bold mb-6 text-center text-blue-800'>
-          Add Employee To Project Lead1/Project Lead2 Exception List
-        </h2>
+        <div className='grid grid-cols-1 md:grid-cols-6 gap-4 items-end'>
+          <div className='col-span-2'>
+            <label className='text-blue-700 font-bold text-2xl'>Register Holidays</label>
+            <Autocomplete
+              options={employees}
+              value={employees.find((e) => e.psid === selectedEmployee) || null}
+              getOptionLabel={(option) => option.employee_name}
+              onChange={(e, newValue) => setSelectedEmployee(newValue?.psid || '')}
+              renderInput={(params) => <TextField {...params} label="Select Employee" />}
+              fullWidth
+            />
+          </div>
 
-        <h3 className='mt-4 font-bold text-gray-600'>Select Employee</h3>
+          <div>
+            <label className='block text-sm font-medium mb-1'>Leave Start Date</label>
+            <input
+              type="date"
+              className='w-full border rounded p-2'
+              value={start_date}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
 
-        <Select.Root
-          value={selectedLead?.value}
-          onValueChange={(val) => {
-            const selected = leadOptions.find((opt) => opt.value === val)
-            setSelectedLead(selected || null)
-          }}
-        >
-          <Select.Trigger className='flex items-center justify-between w-full px-3 py-2 border rounded shadow-sm'>
-            <Select.Value placeholder='Select Lead Exception' />
-            <Select.Icon>
-              <ChevronDownIcon />
-            </Select.Icon>
-          </Select.Trigger>
+          <div>
+            <label className='block text-sm font-medium mb-1'>Leave End Date</label>
+            <input
+              type="date"
+              className='w-full border rounded p-2'
+              value={end_date}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
 
-          <Select.Portal>
-            <Select.Content className='bg-white border border-gray-300 rounded shadow z-50'>
-              <div className='px-3 py-2'>
-                <input
-                  className='w-full px-2 py-1 border border-gray-300 rounded text-sm'
-                  placeholder='Search...'
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select.Viewport className='p-2 max-h-60 overflow-y-auto'>
-                {filteredOptions.length > 0 ? (
-                  filteredOptions.map((option) => (
-                    <Select.Item
-                      key={option.value}
-                      value={option.value}
-                      className='px-3 py-2 rounded cursor-pointer hover:bg-gray-100 flex items-center justify-between'
-                    >
-                      <Select.ItemText>{option.label}</Select.ItemText>
-                      <Select.ItemIndicator>
-                        <CheckIcon />
-                      </Select.ItemIndicator>
-                    </Select.Item>
-                  ))
-                ) : (
-                  <div className='px-3 py-2 text-sm text-gray-500'>No matches</div>
-                )}
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+          <div>
+            <input
+              type="checkbox"
+              className='h-5 w-5'
+              checked={is_half_day}
+              onChange={() => setIsHalfDay(!is_half_day)}
+            />
+            <label className='block text-sm font-medium mb-1'>Half day</label>
+          </div>
 
-        <button
-          onClick={handleAdd}
-          className='mb-6 flex gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700'
-        >
-          <UserCheck />
-          Add
-        </button>
+          <div>
+            <label className='block text-sm font-medium mb-1'>Total Days</label>
+            <div className='p-2 border rounded bg-gray-100'>{total_days}</div>
+          </div>
 
-        <div>
-          <TableComponent data={exceptions} />
+          <div>
+            <label className='block text-sm font-medium mb-1'>Leave Type</label>
+            <select
+              className='w-full border rounded p-2'
+              value={leave_type}
+              onChange={(e) => setLeaveType(e.target.value)}
+            >
+              <option value="Leave">Leave</option>
+              <option value="Holiday">Holiday</option>
+            </select>
+          </div>
+        </div>
+
+        <div className='pt-4'>
+          <button
+            onClick={handleSubmit}
+            className='bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700'
+          >
+            Submit
+          </button>
+        </div>
+
+        <div className="mt-8">
+          <TableComponent holidayData={holidayData} onDelete={deleteHoliday} />
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Page
+export default Page;
