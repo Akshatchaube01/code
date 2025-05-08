@@ -86,9 +86,9 @@ const Page = () => {
           <div className='col-span-2'>
             <label className='text-blue-700 font-bold text-2xl'>Register Holidays</label>
             <Autocomplete
-              options={employees}
-              value={employees.find((e) => e.psid === selectedEmployee) || null}
-              getOptionLabel={(option) => option.employee_name}
+              options={employees || []}
+              value={Array.isArray(employees) ? employees.find((e) => e.psid === selectedEmployee) || null : null}
+              getOptionLabel={(option) => option.employee_name || ''}
               onChange={(e, newValue) => setSelectedEmployee(newValue?.psid || '')}
               renderInput={(params) => <TextField {...params} label="Select Employee" />}
               fullWidth
