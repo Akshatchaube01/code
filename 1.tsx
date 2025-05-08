@@ -1,6 +1,6 @@
 'use client'
 
-import axios from 'axios';
+import axios from '@/components/gra-propel/CustomAxios';
 import React, { useEffect, useState } from 'react';
 import { differenceInCalendarDays } from 'date-fns';
 import {
@@ -18,58 +18,52 @@ interface Employee {
 interface Holiday {
   id: number;
   employee_name: string;
-  start_date: string;
-  end_date: string;
+  holiday_start_date: string;
+  holiday_end_date: string;
   total_days: number;
-  half_day: boolean;
-  leave_type: string;
+  holiday_halfday: boolean;
+  holiday_type: string;
 }
 
 const Page = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [start_date, setStartDate] = useState('');
-  const [end_date, setEndDate] = useState('');
-  const [is_half_day, setIsHalfDay] = useState(false);
-  const [leave_type, setLeaveType] = useState('Leave');
+  const [holiday_start_date, setStartDate] = useState('');
+  const [holiday_end_date, setEndDate] = useState('');
+  const [holiday_halfday, setIsHalfDay] = useState(false);
+  const [holiday_type, setLeaveType] = useState('Leave');
   const [total_days, setTotalDays] = useState(0);
   const [search, setSearch] = useState('');
   const [holidayData, setHolidayData] = useState<Holiday[]>([]);
 
-  const fetchHolidayData = () => {
-    axios.get('/propel/register_holidays?start=1&size=100')
-      .then(res => setHolidayData(res.data.data))
-      .catch(err => console.log('Error in loading data', err));
-  };
-
   useEffect(() => {
     fetchHolidayData();
-    axios.get('/test1.json') // Replace with real endpoint if available
-      .then(res => setEmployees(res.data))
-      .catch(err => console.log("error in loading employees"));
+    axios.get('http://127.0.0.1:8000/propel/employees')
+      .then(res => setEmployees(res.data.data))
+      .catch(err => console.log("error in loading"));
   }, []);
 
   useEffect(() => {
-    if (start_date && end_date) {
-      let days = differenceInCalendarDays(new Date(end_date), new Date(start_date)) + 1;
+    if (holiday_start_date && holiday_end_date) {
+      let days = differenceInCalendarDays(new Date(holiday_end_date), new Date(holiday_start_date)) + 1;
       if (days < 0) days = 0;
-      setTotalDays(is_half_day ? days / 2 : days);
+      setTotalDays(holiday_halfday ? days / 2 : days);
     } else {
       setTotalDays(0);
     }
-  }, [start_date, end_date, is_half_day]);
+  }, [holiday_start_date, holiday_end_date, holiday_halfday]);
 
   const handleSubmit = async () => {
     try {
       const payload = {
         rec_id: 0,
         psid: selectedEmployee,
-        holiday_start_date: start_date,
-        holiday_end_date: end_date,
-        holiday_halfday: is_half_day,
-        holiday_type: leave_type
+        holiday_start_date,
+        holiday_end_date,
+        holiday_halfday,
+        holiday_type
       };
-      await axios.post('/propel/register_holidays', payload);
+      await axios.post('http://127.0.0.1:8000/propel/register_holidays/', payload);
       alert('Leave registered successfully');
       fetchHolidayData();
     } catch (err) {
@@ -78,23 +72,10 @@ const Page = () => {
     }
   };
 
-  const deleteHoliday = async (id: number) => {
-    try {
-      await axios.delete(`/propel/register_holidays/${id}`);
-      alert('Deleted successfully');
-      fetchHolidayData();
-    } catch (err) {
-      console.log('Error deleting record', err);
-    }
-  };
-
-  const getHolidayById = async (id: number) => {
-    try {
-      const res = await axios.get(`/propel/register_holidays/${id}`);
-      console.log(res.data);
-    } catch (err) {
-      console.log('Error fetching by ID', err);
-    }
+  const fetchHolidayData = () => {
+    axios.get('http://127.0.0.1:8000/propel/register_holidays/')
+      .then(res => setHolidayData(res.data))
+      .catch(err => console.log('Error in loading data'));
   };
 
   return (
@@ -118,7 +99,7 @@ const Page = () => {
             <input
               type="date"
               className='w-full border rounded p-2'
-              value={start_date}
+              value={holiday_start_date}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
@@ -128,7 +109,7 @@ const Page = () => {
             <input
               type="date"
               className='w-full border rounded p-2'
-              value={end_date}
+              value={holiday_end_date}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
@@ -137,8 +118,8 @@ const Page = () => {
             <input
               type="checkbox"
               className='h-5 w-5'
-              checked={is_half_day}
-              onChange={() => setIsHalfDay(!is_half_day)}
+              checked={holiday_halfday}
+              onChange={() => setIsHalfDay(!holiday_halfday)}
             />
             <label className='block text-sm font-medium mb-1'>Half day</label>
           </div>
@@ -152,7 +133,7 @@ const Page = () => {
             <label className='block text-sm font-medium mb-1'>Leave Type</label>
             <select
               className='w-full border rounded p-2'
-              value={leave_type}
+              value={holiday_type}
               onChange={(e) => setLeaveType(e.target.value)}
             >
               <option value="Leave">Leave</option>
@@ -170,8 +151,8 @@ const Page = () => {
           </button>
         </div>
 
-        <div className="mt-8">
-          <TableComponent holidayData={holidayData} onDelete={deleteHoliday} />
+        <div className='mt-8'>
+          <TableComponent holidayData={holidayData} />
         </div>
       </div>
     </div>
