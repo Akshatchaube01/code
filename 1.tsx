@@ -16,23 +16,30 @@ const columns = [
     field: 'assigned_fte',
     sorter: 'number',
     headerFilter: 'input',
-    editable: (cell) => !cell.getRow().getData().disable,
+    editable: function (cell) {
+      const data = cell.getRow().getData();
+      return !data.disable;
+    },
   },
   {
     title: 'Start Date',
     field: 'start_date',
     sorter: 'string',
     headerFilter: 'input',
-    editable: (cell) => !cell.getRow().getData().disable,
+    editable: function (cell) {
+      const data = cell.getRow().getData();
+      return !data.disable;
+    },
   },
   {
     title: 'End Date',
     field: 'end_date',
     sorter: 'string',
     headerFilter: 'input',
-    cellStyled: (cell) => {
+    cellFormatter: function (cell) {
       const data = cell.getRow().getData();
-      return data.is_past ? { backgroundColor: 'red', color: 'white' } : {};
+      const value = cell.getValue();
+      return `<div style="background-color:${data.is_past ? 'red' : 'transparent'};color:${data.is_past ? 'white' : 'black'};padding:4px">${value}</div>`;
     },
   },
 ];
