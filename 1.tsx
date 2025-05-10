@@ -1,19 +1,21 @@
-<DatePicker
-  selected={actual_end_date ? new Date(actual_end_date) : null}
-  onChange={(date: Date | null) => {
-    if (date) {
-      const formatDate = date.toISOString().split('T')[0];
-      setActualEndDate(formatDate);
-    } else {
-      setActualEndDate('');
-    }
-  }}
-  dateFormat="yyyy-MM-dd"
-  placeholderText="Actual end date"
-  className={`w-full border px-3 py-2 rounded text-sm ${
-    !actual_end_date ? 'border-red-500' : 'border-gray-300'
-  }`}
+<Autocomplete
+  multiple
+  options={projectLeads}
+  getOptionLabel={(option) => option.name}
+  value={project_lead2}
+  onChange={(event, newValue) => setProjectLead2(newValue)}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      placeholder="Select Project Lead 2"
+      variant="outlined"
+      required
+      error={!project_lead2 || project_lead2.length === 0}
+      helperText={
+        !project_lead2 || project_lead2.length === 0
+          ? "Project Lead 2 is required"
+          : ""
+      }
+    />
+  )}
 />
-{!actual_end_date && (
-  <p className="text-red-500 text-sm mt-1">Actual End Date is required</p>
-)}
