@@ -1,36 +1,57 @@
-const columns = [
-  {
-    title: 'Assignment Start Date',
-    field: 'start_date',
-    sorter: 'string',
-    headerFilter: 'input',
-    editor: dateEditor, // your custom date editor
-    editable: function (cell: any) {
-      const rowData = cell.getData();
-      const el = cell.getElement();
-      if (rowData.disable) {
-        el.style.color = 'grey';
-        return false;
-      }
-      el.style.color = 'black';
-      return true;
-    },
-  },
-  {
-    title: 'Assignment End Date',
-    field: 'end_date',
-    sorter: 'string',
-    headerFilter: 'input',
-    editor: dateEditor,
-    editable: function (cell: any) {
-      const rowData = cell.getData();
-      const el = cell.getElement();
-      if (rowData.is_past) {
-        el.style.color = 'red';
-      } else {
-        el.style.color = 'black';
-      }
-      return true; // allow editing, just change style
-    },
-  },
-];
+const RenderAutocomplete = (
+  label: string,
+  options: Option[],
+  selected: Option[],
+  key: keyof typeof filters
+) => {
+  const isAllSelected = selected.length === options.length;
+
+  const handleChange = (_: any, newValue: Option[]) => {
+    const isSelectAll = newValue.some((opt) => opt.id === -1);
+    const newSelection =
+      isSelectAll && isAllSelected
+        ? []
+        : isSelectAll
+        ? options
+        : newValue.filter((o) => o.id !== -1);
+
+    setFilters((prev) => ({
+      ...prev,
+      [key]: newSelection,
+    }));
+  };
+
+  return (
+    <Autocomplete
+      multiple
+      disableCloseOnSelect
+      options={[{ id: -1, name: "Select All" }, ...options]}
+      value={isAllSelected ? [...options] : selected}
+      onChange={handleChange}
+      getOptionLabel={(option) => option.name}
+      renderOption={(props, option) => {
+        const isSelectAll = option.id === -1;
+        const isChecked = isSelectAll
+          ? selected.length > 0 && selected.length < options.length
+            ? 'indeterminate'
+            : selected.length === options.length
+          : selected.some((s) => s.id === option.id);
+
+        return (
+          <li key={option.id} {...props}>
+            <input
+              type="checkbox"
+              checked={isChecked}
+              readOnly
+              style={{ marginRight: 8 }}
+            />
+            {option.name}
+          </li>
+        );
+      }}
+      renderInput={(params) => <TextField {...params} label={label} />}
+      isOptionEqualToValue={(opt, val) => opt.id === val.id}
+      className='bg-white rounded'
+    />
+  );
+};
