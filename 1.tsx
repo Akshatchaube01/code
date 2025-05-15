@@ -10,11 +10,8 @@ type ProjectTypeTableProps = {
 };
 
 const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ projects_by_type_tb1 }) => {
-    // Handle case where projects_by_type_tb1 is undefined
-    if (!projects_by_type_tb1 || !projects_by_type_tb1["Project Type"] || !projects_by_type_tb1["Count"]) {
-        return <div className="text-red-600">No project data available</div>;
-    }
-    const keys = Object.keys(projects_by_type_tb1["Project Type"]);
+    const hasData = projects_by_type_tb1 && Object.keys(projects_by_type_tb1["Project Type"] || {}).length > 0;
+    const keys = hasData ? Object.keys(projects_by_type_tb1["Project Type"]) : [];
     
     return (
         <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600 w-full">
@@ -26,12 +23,19 @@ const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ projects_by_type_tb
                     </tr>
                 </thead>
                 <tbody className="bg-white text-black">
-                    {keys.map((key) => (
-                        <tr key={key} className="border-b border-red-300">
-                            <td className="px-6 py-4">{projects_by_type_tb1["Project Type"][key].trim()}</td>
-                            <td className="px-6 py-4">{projects_by_type_tb1["Count"][key]}</td>
+                    {hasData ? (
+                        keys.map((key) => (
+                            <tr key={key} className="border-b border-red-300">
+                                <td className="px-6 py-4">{projects_by_type_tb1["Project Type"][key].trim()}</td>
+                                <td className="px-6 py-4">{projects_by_type_tb1["Count"][key]}</td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td className="px-6 py-4 text-gray-500">No Project Types</td>
+                            <td className="px-6 py-4 text-gray-500">No Counts</td>
                         </tr>
-                    ))}
+                    )}
                 </tbody>
             </table>
         </div>
