@@ -1,19 +1,17 @@
 import React, { useState, createElement } from 'react';
 
-// Define the data structure for each row
-interface RowData {
+type RowData = {
   column1: string;
   column2?: string;
-  column3?: number[];
-  column4?: number;
+  columns: (string | number)[];
   details1?: RowData[];
   details2?: RowData[];
-}
+};
 
-interface TableProps {
-  columns: { name: string; sub_columns?: string[]; rowspan?: number; colspan?: number }[];
+type TableProps = {
+  columns: { name: string; subColumns?: string[]; colspan?: number; rowspan?: number }[];
   data: RowData[];
-}
+};
 
 const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -24,51 +22,40 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   const renderRow = (row: RowData, level: number, keyPrefix: string): React.ReactNode[] => {
     const rowKey = `${keyPrefix}-${row.column1 || ''}-${row.column2 || ''}`;
-    const indent = '  '.repeat(level);
-
+    const indent = '\u00A0'.repeat(level * 4);
     const cells = [
       createElement(
         'td',
         {
           key: 'col1',
-          className: 'px-4 py-2 font-medium cursor-pointer',
+          className: 'px-4 py-2 font-medium',
           onClick: level === 0 ? () => toggleRow(rowKey) : undefined,
-          style: { paddingLeft: `${level * 20}px`, fontWeight: level === 0 ? 'bold' : 'normal' },
+          style: level === 0 ? { cursor: 'pointer' } : {},
         },
-        row.column1
+        level === 0 ? row.column1 : `${indent}${row.column1}`
       ),
       createElement(
         'td',
         {
           key: 'col2',
           className: 'px-4 py-2',
-          onClick: level === 1 ? () => toggleRow(`${rowKey}-expand2`) : undefined,
-          style: { paddingLeft: `${(level + 1) * 20}px`, cursor: row.details2 ? 'pointer' : 'auto' },
+          onClick: level === 0 && row.details2 ? () => toggleRow(`${rowKey}-expand2`) : undefined,
+          style: level === 0 && row.details2 ? { cursor: 'pointer', fontWeight: '500' } : {},
         },
-        row.column2 || '-'
+        level === 0 ? row.column2 || '-' : `${indent}${row.column2 || '-'}`
       ),
-      ...(row.column3 || []).map((val, idx) =>
-        createElement(
-          'td',
-          { key: `col3-${idx}`, className: 'px-4 py-2 text-center' },
-          val
-        )
+      ...row.columns.map((col, idx) =>
+        createElement('td', { key: `col-${idx + 3}`, className: 'px-4 py-2' }, col)
       ),
-      createElement(
-        'td',
-        { key: 'col4', className: 'px-4 py-2 font-bold text-center' },
-        row.column4 || 0
-      )
     ];
 
     const mainRow = createElement(
       'tr',
-      { key: rowKey, className: level === 0 ? 'bg-red-100 border-t border-red-300' : 'bg-white' },
+      { key: rowKey, className: 'border-t border-red-300 bg-white' },
       ...cells
     );
 
     const children: React.ReactNode[] = [];
-
     if (expandedRows[rowKey] && row.details1) {
       row.details1.forEach((child, i) => {
         const childKey = `${rowKey}-child${i}`;
@@ -77,9 +64,9 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     }
 
     if (expandedRows[`${rowKey}-expand2`] && row.details2) {
-      row.details2.forEach((subchild, i) => {
-        const subchildKey = `${rowKey}-subchild${i}`;
-        children.push(...renderRow(subchild, level + 2, subchildKey));
+      row.details2.forEach((child, i) => {
+        const childKey = `${rowKey}-subchild${i}`;
+        children.push(...renderRow(child, level + 2, childKey));
       });
     }
 
@@ -98,22 +85,33 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         createElement(
           'tr',
           null,
-          columns.flatMap((col, colIndex) =>
-            col.sub_columns ?
-              col.sub_columns.map((subCol, subIndex) =>
-                createElement(
-                  'th',
-                  { key: `subcol-${colIndex}-${subIndex}`, className: 'px-4 py-3 text-left' },
-                  subCol
-                )
-              ) :
-              [
-                createElement(
-                  'th',
-                  { key: `col-${colIndex}`, colSpan: col.colspan || 1, rowSpan: col.rowspan || 1, className: 'px-4 py-3 text-left' },
-                  col.name
-                )
-              ]
+          ...columns.map((col, i) =>
+            createElement(
+              'th',
+              {
+                key: `col-${i}`,
+                colSpan: col.colspan || 1,
+                rowSpan: col.rowspan || 1,
+                className: 'px-4 py-3 text-left',
+              },
+              col.name
+            )
+          )
+        ),
+        createElement(
+          'tr',
+          null,
+          ...columns.flatMap((col, i) =>
+            (col.subColumns || []).map((subCol, j) =>
+              createElement(
+                'th',
+                {
+                  key: `subcol-${i}-${j}`,
+                  className: 'px-4 py-3 text-left',
+                },
+                subCol
+              )
+            )
           )
         )
       ),
