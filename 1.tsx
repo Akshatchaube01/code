@@ -8,11 +8,12 @@ type ProjectsByType = {
 };
 
 type ProjectTypeTableProps = {
-    data: ProjectsByType;
+    data: ProjectsByType | never[];
 };
 
 const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ data }) => {
-    const projectData = data.projects_by_type_tb1;
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
+    const projectData = data[0].projects_by_type_tb1;
     const keys = Object.keys(projectData["Project Type"]);
     
     return (
