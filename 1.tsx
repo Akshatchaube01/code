@@ -6,10 +6,14 @@ type ProjectsByType = {
 };
 
 type ProjectTypeTableProps = {
-    projects_by_type_tb1: ProjectsByType;
+    projects_by_type_tb1?: ProjectsByType;
 };
 
 const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ projects_by_type_tb1 }) => {
+    // Handle case where projects_by_type_tb1 is undefined
+    if (!projects_by_type_tb1 || !projects_by_type_tb1["Project Type"] || !projects_by_type_tb1["Count"]) {
+        return <div className="text-red-600">No project data available</div>;
+    }
     const keys = Object.keys(projects_by_type_tb1["Project Type"]);
     
     return (
