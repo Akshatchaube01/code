@@ -1,20 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 type ProjectsByType = {
-    projects_by_type_tb1: {
-        "Project Type": { [key: string]: string };
-        "Count": { [key: string]: number };
-    };
+    "Project Type": { [key: string]: string };
+    "Count": { [key: string]: number };
 };
 
 type ProjectTypeTableProps = {
-    data: ProjectsByType | never[];
+    data: ProjectsByType;
 };
 
 const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ data }) => {
-    if (!data || !Array.isArray(data) || data.length === 0) return null;
-    const projectData = data[0].projects_by_type_tb1;
-    const keys = Object.keys(projectData["Project Type"]);
+    const [projectByType, setProjectByType] = useState(data);
+    const keys = Object.keys(projectByType["Project Type"]);
+    
+    useEffect(() => {
+        setProjectByType(data);
+    }, [data]);
     
     return (
         <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600 w-full">
@@ -28,8 +29,8 @@ const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ data }) => {
                 <tbody className="bg-white text-black">
                     {keys.map((key) => (
                         <tr key={key} className="border-b border-red-300">
-                            <td className="px-6 py-4">{projectData["Project Type"][key].trim()}</td>
-                            <td className="px-6 py-4">{projectData["Count"][key]}</td>
+                            <td className="px-6 py-4">{projectByType["Project Type"][key].trim()}</td>
+                            <td className="px-6 py-4">{projectByType["Count"][key]}</td>
                         </tr>
                     ))}
                 </tbody>
