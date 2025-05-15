@@ -1,63 +1,40 @@
-import { FC, ReactNode } from 'react';
-import { Users, Boxes, Folder, Star } from 'lucide-react';
+import React from 'react';
 
-interface DashboardValues {
-  assignedFTEs: number;
-  ongoingProjects: number;
-  totalProjects: number;
-  involvedProjects: number;
-}
-
-const DashboardCards: FC<{ values: DashboardValues }> = ({ values }) => {
-  const cardData = [
-    {
-      title: 'Assigned FTEs',
-      value: values.assignedFTEs,
-      icon: <Users size={32} className="text-blue-500" />,
-    },
-    {
-      title: 'Ongoing Projects',
-      value: values.ongoingProjects,
-      description: 'As on April 25, 2025',
-      icon: <Boxes size={32} className="text-blue-500" />,
-    },
-    {
-      title: 'Total Projects',
-      value: values.totalProjects,
-      highlight: '70.00% of all projects',
-      icon: <Folder size={32} className="text-blue-500" />,
-    },
-    {
-      title: "I'm Involved",
-      value: values.involvedProjects,
-      description: '(active projects)',
-      icon: <Star size={32} className="text-blue-500" />,
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-      {cardData.map((card, index) => (
-        <div
-          key={index}
-          className="border rounded-2xl shadow-md p-6 flex flex-col justify-between h-44 bg-white"
-        >
-          <div className="flex items-center gap-4">
-            {card.icon}
-            <div className="text-gray-600 font-medium">{card.title}</div>
-          </div>
-          <div className="text-4xl font-bold text-gray-900 mt-4">{card.value}</div>
-          {card.highlight ? (
-            <div className="text-green-500 font-semibold text-sm mt-2">
-              {card.highlight}
-            </div>
-          ) : (
-            <div className="text-gray-400 text-sm mt-2">{card.description}</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+type ProjectsByType = {
+    projects_by_type_tb1: {
+        "Project Type": { [key: string]: string };
+        "Count": { [key: string]: number };
+    };
 };
 
-export default DashboardCards;
+type ProjectTypeTableProps = {
+    data: ProjectsByType;
+};
+
+const ProjectTypeTable: React.FC<ProjectTypeTableProps> = ({ data }) => {
+    const projectData = data.projects_by_type_tb1;
+    const keys = Object.keys(projectData["Project Type"]);
+    
+    return (
+        <div className="overflow-x-auto rounded-xl shadow-sm border-2 border-red-600 w-full">
+            <table className="min-w-full table-auto">
+                <thead className="bg-red-600 text-white">
+                    <tr>
+                        <th className="px-6 py-3 text-left font-semibold">Project Type</th>
+                        <th className="px-6 py-3 text-left font-semibold">Count</th>
+                    </tr>
+                </thead>
+                <tbody className="bg-white text-black">
+                    {keys.map((key) => (
+                        <tr key={key} className="border-b border-red-300">
+                            <td className="px-6 py-4">{projectData["Project Type"][key].trim()}</td>
+                            <td className="px-6 py-4">{projectData["Count"][key]}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
+export default ProjectTypeTable;
