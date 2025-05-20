@@ -1,127 +1,159 @@
-import React, { useState, createElement } from 'react';
+"use client";
 
-type RowData = {
-  column1: string;
-  column2?: string;
-  columns: (string | number)[];
-  details1?: RowData[];
-  details2?: RowData[];
-};
+import { useState, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  Users,
+  Shield,
+  FileCheck2,
+  ChevronDown,
+  Shapes,
+  Database,
+  FileChartLine,
+  UserRoundPlus,
+  MessageSquare,
+} from "lucide-react";
 
-type TableProps = {
-  columns: { name: string; subColumns?: string[]; colspan?: number; rowspan?: number }[];
-  data: RowData[];
-};
+export default function HorizontalNavbar() {
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-
-  const toggleRow = (key: string) => {
-    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleMouseEnter = (title: string) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpenMenu(title);
   };
 
-  const renderRow = (row: RowData, level: number, keyPrefix: string): React.ReactNode[] => {
-    const rowKey = `${keyPrefix}-${row.column1 || ''}-${row.column2 || ''}`;
-    const indent = '\u00A0'.repeat(level * 4);
-    const cells = [
-      createElement(
-        'td',
-        {
-          key: 'col1',
-          className: 'px-4 py-2 font-medium',
-          onClick: level === 0 ? () => toggleRow(rowKey) : undefined,
-          style: level === 0 ? { cursor: 'pointer' } : {},
-        },
-        level === 0 ? row.column1 : `${indent}${row.column1}`
-      ),
-      createElement(
-        'td',
-        {
-          key: 'col2',
-          className: 'px-4 py-2',
-          onClick: level === 0 && row.details2 ? () => toggleRow(`${rowKey}-expand2`) : undefined,
-          style: level === 0 && row.details2 ? { cursor: 'pointer', fontWeight: '500' } : {},
-        },
-        level === 0 ? row.column2 || '-' : `${indent}${row.column2 || '-'}`
-      ),
-      ...row.columns.map((col, idx) =>
-        createElement('td', { key: `col-${idx + 3}`, className: 'px-4 py-2' }, col)
-      ),
-    ];
-
-    const mainRow = createElement(
-      'tr',
-      { key: rowKey, className: 'border-t border-red-300 bg-white' },
-      ...cells
-    );
-
-    const children: React.ReactNode[] = [];
-    if (expandedRows[rowKey] && row.details1) {
-      row.details1.forEach((child, i) => {
-        const childKey = `${rowKey}-child${i}`;
-        children.push(...renderRow(child, level + 1, childKey));
-      });
-    }
-
-    if (expandedRows[`${rowKey}-expand2`] && row.details2) {
-      row.details2.forEach((child, i) => {
-        const childKey = `${rowKey}-subchild${i}`;
-        children.push(...renderRow(child, level + 2, childKey));
-      });
-    }
-
-    return [mainRow, ...children];
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setOpenMenu(null);
+    }, 500);
   };
 
-  return createElement(
-    'div',
-    { className: 'overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm' },
-    createElement(
-      'table',
-      { className: 'min-w-full table-auto' },
-      createElement(
-        'thead',
-        { className: 'bg-red-600 text-white' },
-        createElement(
-          'tr',
-          null,
-          ...columns.map((col, i) =>
-            createElement(
-              'th',
-              {
-                key: `col-${i}`,
-                colSpan: col.colspan || 1,
-                rowSpan: col.rowspan || 1,
-                className: 'px-4 py-3 text-left',
-              },
-              col.name
-            )
-          )
-        ),
-        createElement(
-          'tr',
-          null,
-          ...columns.flatMap((col, i) =>
-            (col.subColumns || []).map((subCol, j) =>
-              createElement(
-                'th',
-                {
-                  key: `subcol-${i}-${j}`,
-                  className: 'px-4 py-3 text-left',
-                },
-                subCol
-              )
-            )
-          )
-        )
-      ),
-      createElement(
-        'tbody',
-        null,
-        data.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))
-      )
-    )
+  const menus = [
+    {
+      title: "ADMINISTRATOR",
+      items: [
+        { href: "/gra-propel/data_quality", icon: <MessageSquare />, label: "Data Quality" },
+        { href: "/gra-propel/manage_users", icon: <UserRoundPlus />, label: "Edit User Role" },
+        { href: "/gra-propel/assign_team", icon: <MessageSquare />, label: "Assign Team" },
+      ],
+    },
+    {
+      title: "USER INPUTS",
+      items: [
+        { href: "/gra-propel/add_project", icon: <FileChartLine />, label: "Add Project" },
+        { href: "/gra-propel/assign_projects", icon: <FileCheck2 />, label: "Assign Project" },
+        { href: "/gra-propel/add_efforts", icon: <Shield />, label: "Add Efforts" },
+        { href: "/gra-propel/register_holiday", icon: <Shield />, label: "Register Holidays" },
+        { href: "/gra-propel/lead_exception", icon: <Shield />, label: "Add Lead Exceptions" },
+      ],
+    },
+    {
+      title: "ADD/MODIFY DATA",
+      items: [
+        { href: "/gra-propel/region", icon: <Database />, label: "Region Owner" },
+        { href: "/gra-propel/project_funding", icon: <Database />, label: "Project Funding" },
+        { href: "/gra-propel/portfolio", icon: <Database />, label: "Portfolio" },
+        { href: "/gra-propel/project_type", icon: <Database />, label: "Project Type" },
+        { href: "/gra-propel/project_type_L2", icon: <Database />, label: "Project Type L2" },
+        { href: "/gra-propel/task", icon: <Database />, label: "Project Task" },
+        { href: "/gra-propel/sub_task", icon: <Database />, label: "Project Sub-task" },
+        { href: "/gra-propel/project_status", icon: <Database />, label: "Project Status" },
+      ],
+    },
+    {
+      title: "REPORTS",
+      items: [
+        { href: "/gra-propel/employees", icon: <Users />, label: "My Team" },
+        { href: "/gra-propel/projects", icon: <Shapes />, label: "Projects" },
+        { href: "/gra-propel/assignments", icon: <Shapes />, label: "Assignments" },
+        { href: "/gra-propel/my_efforts", icon: <Shapes />, label: "My Efforts" },
+      ],
+    },
+  ];
+
+  const userProfile = [
+    {
+      title: "USER PROFILE",
+      items: [
+        { href: "/gra-propel/dashboard", icon: <MessageSquare />, label: "My Dashboard" },
+        { href: "/gra-propel/login", icon: <UserRoundPlus />, label: "Print Dashboard" },
+        { href: "/gra-propel/feedback", icon: <UserRoundPlus />, label: "Feedback and Comments" },
+        // { href: "/gra-propel/logout", icon: <MessageSquare />, label: "Log Out" },
+      ],
+    },
+  ];
+
+  return (
+    <div className="w-full bg-gray-800 text-white shadow-md relative">
+      <div className="flex items-center justify-between px-6 py-4 font-semibold">
+        <div className="flex items-center gap-4">
+          <span className="font-bold tracking-wider text-red-500 text-[22px]">PROPEL</span>
+        </div>
+
+        <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-[700px] flex md:flex-row flex-col md:justify-between items-center z-[100] overflow-x-auto">
+          {menus.map((menu, index) => (
+            <div
+              key={index}
+              className="relative p-2 hover:bg-gray-600 rounded-lg"
+              onMouseEnter={() => handleMouseEnter(menu.title)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button className="flex items-center gap-2 text-lg transition">
+                {menu.title}
+                <ChevronDown size={18} />
+              </button>
+
+              {openMenu === menu.title && (
+                <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-[100]">
+                  {menu.items.map((item, idx) => (
+                    <Link
+                      key={idx}
+                      href={item.href}
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition whitespace-nowrap"
+                    >
+                      <span>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="text-white font-medium whitespace-nowrap pr-[74px]">
+          {userProfile.map((menu, index) => (
+            <div
+              key={index}
+              className="relative p-2 hover:bg-gray-600 rounded-lg"
+              onMouseEnter={() => handleMouseEnter(menu.title)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button className="flex items-center gap-2 text-lg transition">
+                {menu.title}
+                <ChevronDown size={18} />
+              </button>
+
+              {openMenu === menu.title && (
+                <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-[9999]">
+                  {menu.items.map((item, idx) => (
+                    <Link
+                      key={idx}
+                      href={item.href}
+                      className="flex items-center gap-2 px-5 py-3 hover:bg-gray-600 transition whitespace-nowrap"
+                    >
+                      <span>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
-};
-
-export default ExpandableUtilizationTable;
+}
