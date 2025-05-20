@@ -62,10 +62,7 @@ export default function ResponsiveNavbar() {
         { href: "/gra-propel/task", label: "Project Task" },
         { href: "/gra-propel/sub_task", label: "Project Sub-task" },
         { href: "/gra-propel/project_status", label: "Project Status" },
-      ].map((item) => ({
-        ...item,
-        icon: <Database />,
-      })),
+      ].map((item) => ({ ...item, icon: <Database /> })),
     },
     {
       title: "REPORTS",
@@ -91,16 +88,12 @@ export default function ResponsiveNavbar() {
 
   return (
     <div className="w-full bg-gray-800 text-white shadow-md relative z-50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 font-semibold">
-        <div className="flex items-center gap-4">
-          <span className="font-bold tracking-wider text-red-500 text-[20px]">PROPEL</span>
-        </div>
-        <div className="md:hidden">
-          <button onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 font-semibold md:hidden">
+        <span className="font-bold tracking-wider text-red-500 text-[20px]">PROPEL</span>
+        <button onClick={() => setMobileOpen(!mobileOpen)}>
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
       {/* Mobile Menu */}
@@ -113,10 +106,7 @@ export default function ResponsiveNavbar() {
                 onClick={() => setOpenMenu(openMenu === menu.title ? null : menu.title)}
               >
                 {menu.title}
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform ${openMenu === menu.title ? "rotate-180" : ""}`}
-                />
+                <ChevronDown size={16} className={`transition-transform ${openMenu === menu.title ? "rotate-180" : ""}`} />
               </button>
               {openMenu === menu.title && (
                 <div className="mt-1 bg-gray-700 rounded">
@@ -138,9 +128,12 @@ export default function ResponsiveNavbar() {
       )}
 
       {/* Desktop Menu */}
-      <div className="hidden md:flex justify-between items-center px-6 relative z-[100]">
-        {/* Center Menus */}
-        <div className="flex gap-6 mx-auto">
+      <div className="hidden md:flex items-center justify-between px-6 py-2">
+        {/* Logo */}
+        <div className="font-bold tracking-wider text-red-500 text-[20px]">PROPEL</div>
+
+        {/* Center Navigation */}
+        <div className="flex gap-6">
           {menus.map((menu, index) => (
             <div
               key={index}
@@ -149,9 +142,9 @@ export default function ResponsiveNavbar() {
               onMouseLeave={handleMouseLeave}
             >
               <div className="relative">
-                <button className="flex items-center gap-2 text-lg transition">
+                <button className="flex items-center gap-2 text-sm font-medium">
                   {menu.title}
-                  <ChevronDown size={18} />
+                  <ChevronDown size={16} />
                 </button>
                 {openMenu === menu.title && (
                   <div className="absolute top-full left-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-[9999]">
@@ -172,7 +165,7 @@ export default function ResponsiveNavbar() {
           ))}
         </div>
 
-        {/* User Profile - Right Aligned */}
+        {/* Right User Profile */}
         <div className="flex gap-4">
           {userProfile.map((menu, index) => (
             <div
@@ -182,9 +175,9 @@ export default function ResponsiveNavbar() {
               onMouseLeave={handleMouseLeave}
             >
               <div className="relative">
-                <button className="flex items-center gap-2 text-lg transition">
+                <button className="flex items-center gap-2 text-sm font-medium">
                   {menu.title}
-                  <ChevronDown size={18} />
+                  <ChevronDown size={16} />
                 </button>
                 {openMenu === menu.title && (
                   <div className="absolute top-full right-0 bg-gray-700 mt-2 rounded-md shadow-lg min-w-max z-[9999]">
