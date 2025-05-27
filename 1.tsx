@@ -1,4 +1,4 @@
-import React, { useState, createElement } from 'react';
+import React, { useState } from 'react';
 
 type RowData = {
   column1: string; // Team
@@ -29,62 +29,78 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   };
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    setHiddenCountries(selectedOptions);
+    const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+    setHiddenCountries(selected);
   };
 
   const allCountries = Array.from(
-    new Set(data.flatMap((row) => row.details1?.map((child) => child.column2) || []))
+    new Set(data.flatMap((team) => team.details1?.map((child) => child.column2) || []))
   );
 
-  const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
+  const renderRow = (
+    row: RowData,
+    level: number,
+    keyPrefix: string,
+    isVisible: boolean
+  ): any[] => {
+    if (!isVisible) return [];
+
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
-
-    const visibleChildren = row.details1?.filter(
-      (child) => !hiddenCountries.includes(child.column2)
-    ) || [];
-
-    const isExpandable = level === 0 && visibleChildren.length > 0;
+    const isParent = level === 0;
+    const isExpandable = isParent && row.details1 && row.details1.length > 0;
 
     const cells = [
-      createElement(
-        'td',
-        {
-          key: 'col1',
-          className: 'px-4 py-2 font-medium',
-          onClick: isExpandable ? () => toggleRow(rowKey) : undefined,
-          style: isExpandable ? { cursor: 'pointer' } : {},
-        },
-        row.column1
-      ),
-      createElement('td', { key: 'col2', className: 'px-4 py-2' }, row.column2),
-      ...row.column3.map((value, index) =>
-        createElement('td', { key: `col3-${index}`, className: 'px-4 py-2' }, value)
-      ),
-      createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4),
+      <td
+        key="col1"
+        className="px-4 py-2 font-medium"
+        onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
+        style={isExpandable ? { cursor: 'pointer' } : {}}
+      >
+        {row.column1}
+      </td>,
+      <td key="col2" className="px-4 py-2">
+        {row.column2}
+      </td>,
+      ...row.column3.map((value, idx) => (
+        <td key={`col3-${idx}`} className="px-4 py-2">
+          {value}
+        </td>
+      )),
+      <td key="col4" className="px-4 py-2">
+        {row.column4}
+      </td>,
     ];
 
-    const mainRow = createElement(
-      'tbody',
-      { key: rowKey },
-      createElement('tr', { className: 'border-t border-red-300 bg-white' }, ...cells)
+    const mainRow = (
+      <tbody key={rowKey}>
+        <tr className="border-t border-red-300 bg-white">{cells}</tr>
+      </tbody>
     );
 
     const children: any[] = [];
 
     if (isExpandable && expandedRows[rowKey]) {
-      visibleChildren.forEach((child, i) => {
-        const childKey = `${rowKey}-child-${i}`;
-        children.push(...renderRow(child, level + 1, childKey));
+      row.details1!.forEach((child, i) => {
+        const visible = !hiddenCountries.includes(child.column2);
+        children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, visible));
       });
     }
 
     return [mainRow, ...children];
   };
 
+  // Only keep team rows where at least one child is not in hiddenCountries
+  const filteredData = data.filter((team) => {
+    const children = team.details1 || [];
+    const visibleChildren = children.filter(
+      (child) => !hiddenCountries.includes(child.column2)
+    );
+    return visibleChildren.length > 0;
+  });
+
   return (
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
-      {/* Country Filter */}
+      {/* Filter UI */}
       <div className="mb-4">
         <label className="mr-2 font-semibold">Hide Work Location Countries:</label>
         <select
@@ -128,7 +144,9 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
               )}
           </tr>
         </thead>
-        {data.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))}
+        {filteredData.flatMap((team, idx) =>
+          renderRow(team, 0, `team-${idx}`, true)
+        )}
       </table>
     </div>
   );
