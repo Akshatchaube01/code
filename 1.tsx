@@ -29,7 +29,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   );
 
   useEffect(() => {
-    setShownCountries(allCountries); // All visible by default
+    setShownCountries(allCountries);
   }, [data]);
 
   const toggleRow = (key: string) => {
@@ -38,9 +38,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   const toggleCountry = (country: string) => {
     setShownCountries((prev) =>
-      prev.includes(country)
-        ? prev.filter((c) => c !== country)
-        : [...prev, country]
+      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
     );
   };
 
@@ -92,10 +90,28 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     const children: any[] = [];
 
     if (isExpandable && expandedRows[rowKey]) {
-      row.details1!.forEach((child, i) => {
-        const visible = shownCountries.includes(child.column2);
-        children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, visible));
-      });
+      const visibleChildren = row.details1!.filter((child) =>
+        shownCountries.includes(child.column2)
+      );
+
+      if (visibleChildren.length > 0) {
+        children.push(
+          <tr key={`${rowKey}-subheader`} className="bg-gray-100 font-semibold">
+            <td className="px-4 py-2">Team</td>
+            <td className="px-4 py-2">Work Location Country</td>
+            {row.column3.map((_, i) => (
+              <td key={`sh-col3-${i}`} className="px-4 py-2">
+                Metric {i + 1}
+              </td>
+            ))}
+            <td className="px-4 py-2">Total</td>
+          </tr>
+        );
+
+        visibleChildren.forEach((child, i) => {
+          children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, true));
+        });
+      }
     }
 
     return [mainRow, ...children];
@@ -111,7 +127,6 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   return (
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
-      {/* Filter UI */}
       <div className="mb-4">
         <p className="font-semibold mb-2">Select Countries to Display:</p>
         <div className="flex flex-wrap gap-4">
@@ -135,31 +150,21 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         </button>
       </div>
 
-      {/* Table */}
       <table className="min-w-full table-auto">
         <thead className="bg-red-600 text-white">
           <tr>
-            {columns.map((col, i) => (
-              <th
-                key={`col-${i}`}
-                className="px-4 py-3 text-left"
-                colSpan={col.colspan}
-                rowSpan={col.rowspan}
-              >
-                {col.name}
-              </th>
-            ))}
-          </tr>
-          <tr>
-            {columns
-              .filter((col) => col.sub_columns && col.sub_columns.length > 0)
-              .flatMap((col) =>
-                col.sub_columns!.map((subCol, j) => (
-                  <th key={`subcol-${col.name}-${j}`} className="px-4 py-3 text-left">
-                    {subCol}
-                  </th>
-                ))
-              )}
+            {columns.map((col, i) =>
+              col.name === 'Work Location Country' ? null : (
+                <th
+                  key={`col-${i}`}
+                  className="px-4 py-3 text-left"
+                  colSpan={col.colspan}
+                  rowSpan={col.rowspan}
+                >
+                  {col.name}
+                </th>
+              )
+            )}
           </tr>
         </thead>
         {filteredData.flatMap((team, idx) =>
