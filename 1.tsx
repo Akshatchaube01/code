@@ -61,12 +61,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     const isExpandable = isParent && row.details1 && row.details1.length > 0;
 
     const cells = [
-      <td
-        key="col1"
-        className="px-4 py-2 font-medium"
-        onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
-        style={isExpandable ? { cursor: 'pointer' } : {}}
-      >
+      <td key="col1" className="px-4 py-2 font-medium">
         {row.column1}
       </td>,
       <td key="col2" className="px-4 py-2">
@@ -84,7 +79,13 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
     const mainRow = (
       <tbody key={rowKey}>
-        <tr className="border-t border-red-300 bg-white">{cells}</tr>
+        <tr
+          className="border-t border-red-300 bg-white"
+          onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
+          style={isExpandable ? { cursor: 'pointer' } : {}}
+        >
+          {cells}
+        </tr>
       </tbody>
     );
 
