@@ -1,7 +1,6 @@
 "use client";
 
 import React, { FC, useMemo } from "react";
-import { TrendingUp } from "lucide-react";
 import { Pie, PieChart, Legend, Label, PieLabelRenderProps } from "recharts";
 
 import {
@@ -33,10 +32,9 @@ type DynamicPieChartProps = {
 
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   const totalValue = useMemo(() => {
-    return data.reduce((acc, curr) => acc + curr.value, 0);
+    return data.reduce((acc, curr) => acc + Number(curr.value), 0);
   }, [data]);
 
-  // Custom label to show percentage
   const renderPercentageLabel = ({
     cx,
     cy,
@@ -45,6 +43,15 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
     outerRadius,
     percent,
   }: PieLabelRenderProps) => {
+    if (
+      typeof cx !== "number" ||
+      typeof cy !== "number" ||
+      typeof innerRadius !== "number" ||
+      typeof outerRadius !== "number"
+    ) {
+      return null;
+    }
+
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -69,58 +76,60 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
       <CardContent className="flex flex-col items-center max-h-[850px]">
         <ChartContainer config={config}>
           <div className="flex flex-col items-center max-h-[850px]">
-            <div>
-              <PieChart width={350} height={450}>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="metric"
-                  innerRadius={100}
-                  outerRadius={160}
-                  strokeWidth={5}
-                  labelLine={false}
-                  label={renderPercentageLabel}
-                >
-                  <Label
-                    content={({ viewBox }) => {
-                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                        return (
-                          <text
+            <PieChart width={350} height={450}>
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="metric"
+                innerRadius={100}
+                outerRadius={160}
+                strokeWidth={5}
+                labelLine={false}
+                label={renderPercentageLabel}
+              >
+                <Label
+                  content={({ viewBox }) => {
+                    if (
+                      viewBox &&
+                      typeof viewBox.cx === "number" &&
+                      typeof viewBox.cy === "number"
+                    ) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
                             x={viewBox.cx}
                             y={viewBox.cy}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
+                            className="fill-foreground text-3xl font-bold"
                           >
-                            <tspan
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              className="fill-foreground text-3xl font-bold"
-                            >
-                              {totalValue.toLocaleString()}
-                            </tspan>
-                            <tspan
-                              x={viewBox.cx}
-                              y={(viewBox.cy || 8) + 24}
-                              className="fill-muted-foreground text-sm"
-                            >
-                              value
-                            </tspan>
-                          </text>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </Pie>
-                <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  wrapperStyle={{ width: "100%", textAlign: "center" }}
+                            {totalValue.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy + 24}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            value
+                          </tspan>
+                        </text>
+                      );
+                    }
+                    return null;
+                  }}
                 />
-              </PieChart>
-            </div>
+              </Pie>
+              <Legend
+                layout="horizontal"
+                align="center"
+                verticalAlign="bottom"
+                wrapperStyle={{ width: "100%", textAlign: "center" }}
+              />
+            </PieChart>
           </div>
         </ChartContainer>
       </CardContent>
