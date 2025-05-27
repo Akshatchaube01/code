@@ -1,13 +1,18 @@
 "use client";
 
 import React, { FC, useMemo } from "react";
-import { Pie, PieChart, Legend, Label, PieLabelRenderProps } from "recharts";
+import {
+  Pie,
+  PieChart,
+  Legend,
+  Label,
+  PieLabelRenderProps,
+  Tooltip,
+} from "recharts";
 
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/frame/ui/card";
@@ -36,22 +41,13 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   }, [data]);
 
   const renderPercentageLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent,
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    percent = 0,
   }: PieLabelRenderProps) => {
-    if (
-      typeof cx !== "number" ||
-      typeof cy !== "number" ||
-      typeof innerRadius !== "number" ||
-      typeof outerRadius !== "number"
-    ) {
-      return null;
-    }
-
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -90,28 +86,25 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
               >
                 <Label
                   content={({ viewBox }) => {
-                    if (
-                      viewBox &&
-                      typeof viewBox.cx === "number" &&
-                      typeof viewBox.cy === "number"
-                    ) {
+                    const v = viewBox as { cx?: number; cy?: number };
+                    if (typeof v?.cx === "number" && typeof v?.cy === "number") {
                       return (
                         <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
+                          x={v.cx}
+                          y={v.cy}
                           textAnchor="middle"
                           dominantBaseline="middle"
                         >
                           <tspan
-                            x={viewBox.cx}
-                            y={viewBox.cy}
+                            x={v.cx}
+                            y={v.cy}
                             className="fill-foreground text-3xl font-bold"
                           >
                             {totalValue.toLocaleString()}
                           </tspan>
                           <tspan
-                            x={viewBox.cx}
-                            y={viewBox.cy + 24}
+                            x={v.cx}
+                            y={v.cy + 24}
                             className="fill-muted-foreground text-sm"
                           >
                             value
