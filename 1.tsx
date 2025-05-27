@@ -28,14 +28,19 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    setHiddenCountries(selected);
-  };
-
   const allCountries = Array.from(
     new Set(data.flatMap((team) => team.details1?.map((child) => child.column2) || []))
   );
+
+  const toggleCountry = (country: string) => {
+    setHiddenCountries((prev) =>
+      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
+    );
+  };
+
+  const clearFilters = () => {
+    setHiddenCountries([]);
+  };
 
   const renderRow = (
     row: RowData,
@@ -89,7 +94,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  // Only keep team rows where at least one child is not in hiddenCountries
+  // Filter teams where at least one child is visible
   const filteredData = data.filter((team) => {
     const children = team.details1 || [];
     const visibleChildren = children.filter(
@@ -99,22 +104,29 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   });
 
   return (
-    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
+    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
       {/* Filter UI */}
       <div className="mb-4">
-        <label className="mr-2 font-semibold">Hide Work Location Countries:</label>
-        <select
-          multiple
-          value={hiddenCountries}
-          onChange={handleCountryChange}
-          className="border border-gray-300 rounded p-1"
-        >
+        <p className="font-semibold mb-2">Hide Work Location Countries:</p>
+        <div className="flex flex-wrap gap-4">
           {allCountries.map((country) => (
-            <option key={country} value={country}>
-              {country}
-            </option>
+            <label key={country} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={country}
+                checked={hiddenCountries.includes(country)}
+                onChange={() => toggleCountry(country)}
+              />
+              <span>{country}</span>
+            </label>
           ))}
-        </select>
+        </div>
+        <button
+          onClick={clearFilters}
+          className="mt-3 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Clear Filters
+        </button>
       </div>
 
       {/* Table */}
