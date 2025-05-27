@@ -1,8 +1,8 @@
-import React, { useState, createElement, Fragment } from 'react';
+import React, { useState, createElement } from 'react';
 
 type RowData = {
-  column1: string; // e.g., Country name
-  column2: string;
+  column1: string; // e.g., Team or identifier
+  column2: string; // Work Location Country
   column3: number[];
   column4: number;
   details1?: RowData[];
@@ -28,12 +28,17 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const uniqueCountries = Array.from(new Set(data.map((row) => row.column1)));
-
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions).map((opt) => opt.value);
     setSelectedCountries(selectedOptions);
   };
+
+  const uniqueCountries = Array.from(new Set(data.map((row) => row.column2)));
+
+  const filteredData =
+    selectedCountries.length === 0
+      ? data
+      : data.filter((row) => selectedCountries.includes(row.column2));
 
   const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
@@ -73,16 +78,11 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  const filteredData =
-    selectedCountries.length === 0
-      ? data
-      : data.filter((row) => selectedCountries.includes(row.column1));
-
   return (
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
       {/* Country Filter */}
       <div className="mb-4">
-        <label className="mr-2 font-semibold">Filter by Country:</label>
+        <label className="mr-2 font-semibold">Filter by Work Location Country:</label>
         <select
           multiple
           value={selectedCountries}
