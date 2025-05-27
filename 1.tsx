@@ -66,7 +66,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
         dominantBaseline="central"
         className="text-xs font-medium"
       >
-        {(percent * 100).toFixed(1)}%
+        {Math.round(percent * 100)}%
       </text>
     );
   };
