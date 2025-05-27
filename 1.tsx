@@ -2,12 +2,14 @@
 
 import React, { FC, useMemo, useState } from "react";
 import {
-  Pie,
-  PieChart,
-  Legend,
-  Label,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
-  PieLabelRenderProps,
+  Brush,
 } from "recharts";
 
 import {
@@ -18,146 +20,159 @@ import {
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/frame/ui/chart";
 
-import { Button } from "@/components/ui/button"; // Adjust this import path if needed
+import { Button } from "@/components/ui/button"; // Adjust path as needed
 
 type DataType = {
   metric: string;
-  value: number;
+  value: number;   // raw value
   fill: string;
 };
 
-type DynamicPieChartProps = {
+type NormalizedDataType = DataType & {
+  percent: number; // percentage of total sum (0-100)
+};
+
+type DynamicBarChartProps = {
   data: DataType[];
   config: ChartConfig;
 };
 
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
-  const totalValue = useMemo(() => {
-    return data.reduce((acc, curr) => acc + Number(curr.value), 0);
-  }, [data]);
+const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
+  const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
+
+  const normalizedData: NormalizedDataType[] = useMemo(() => {
+    return data.map(d => ({
+      ...d,
+      percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
+    }));
+  }, [data, totalValue]);
 
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const renderPercentageLabel = ({
-    cx = 0,
-    cy = 0,
-    midAngle = 0,
-    innerRadius = 0,
-    outerRadius = 0,
-    percent = 0,
-  }: PieLabelRenderProps) => {
-    const RADIAN = Math.PI / 180;
-
-    const ir = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
-    const or = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
-    const cxNum = typeof cx === "number" ? cx : parseFloat(cx);
-    const cyNum = typeof cy === "number" ? cy : parseFloat(cy);
-    const radius = ir + (or - ir) * 0.5;
-
-    const x = cxNum + radius * Math.cos(-midAngle * RADIAN);
-    const y = cyNum + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#333"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {Math.round(percent * 100)}%
-      </text>
-    );
-  };
+  const chartWidth = 500;
+  const chartHeight = 300;
 
   return (
-    <div
-      className={
-        isFullScreen
-          ? "fixed inset-0 bg-white z-50 p-6 overflow-hidden h-screen m-0"
-          : ""
-      }
-    >
-      <div className="flex justify-end mb-2">
-        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
-          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
-        </Button>
-      </div>
+    <>
+      {isFullScreen ? (
+        <div className="fixed inset-0 bg-white z-50 p-6 overflow-auto flex flex-col">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setIsFullScreen(false)} variant="outline">
+              Exit Full Screen
+            </Button>
+          </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center max-h-[850px]">
-          <ChartContainer config={config}>
-            <div
-              className={
-                isFullScreen
-                  ? "w-full h-[80vh]"
-                  : "w-[350px] h-[450px]"
-              }
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <Pie
-                    data={data}
-                    dataKey="value"
-                    nameKey="metric"
-                    innerRadius={100}
-                    outerRadius={160}
-                    strokeWidth={5}
-                    labelLine={false}
-                    label={renderPercentageLabel}
-                  >
-                    <Label
-                      content={({ viewBox }) => {
-                        const v = viewBox as { cx?: number; cy?: number };
-                        const cx = typeof v.cx === "number" ? v.cx : 0;
-                        const cy = typeof v.cy === "number" ? v.cy : 0;
+          <Card className="flex-grow">
+            <CardContent className="flex flex-col items-center max-h-[90vh]">
+              <ChartContainer config={config}>
+                <div className="w-full h-[80vh]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={normalizedData}
+                      margin={{ left: 0 }}
+                      layout="horizontal"
+                    >
+                      <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                      <XAxis
+                        dataKey="metric"
+                        tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
+                        tickLine={true}
+                        axisLine={true}
+                        tickMargin={10}
+                      />
+                      <Brush
+                        dataKey="metric"
+                        height={30}
+                        stroke="#8884d8"
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tickFormatter={(value) => `${value.toFixed(0)}%`}
+                        tick={{ fontSize: 12, fontWeight: 600 }}
+                        type="number"
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                        formatter={(value: number, name: string, props: any) => {
+                          const rawVal = props.payload.value;
+                          return [`${rawVal}`, "Value"];
+                        }}
+                        contentStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Bar
+                        dataKey="percent"
+                        fill="#8884d8"
+                        radius={[5, 5, 0, 0]}
+                        isAnimationActive={false}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-end mb-2">
+            <Button onClick={() => setIsFullScreen(true)} variant="outline">
+              Full Screen
+            </Button>
+          </div>
 
-                        return (
-                          <text
-                            x={cx}
-                            y={cy}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                          >
-                            <tspan
-                              x={cx}
-                              y={cy}
-                              className="fill-foreground text-3xl font-bold"
-                            >
-                              {totalValue.toLocaleString()}
-                            </tspan>
-                            <tspan
-                              x={cx}
-                              y={cy + 24}
-                              className="fill-muted-foreground text-sm"
-                            >
-                              value
-                            </tspan>
-                          </text>
-                        );
-                      }}
-                    />
-                  </Pie>
-                  <Legend
-                    layout="horizontal"
-                    align="center"
-                    verticalAlign="bottom"
-                    wrapperStyle={{ width: "100%", textAlign: "center" }}
+          <Card className="items-center">
+            <CardContent>
+              <ChartContainer config={config}>
+                <BarChart
+                  width={chartWidth}
+                  height={chartHeight}
+                  data={normalizedData}
+                  margin={{ left: 0 }}
+                  layout="horizontal"
+                >
+                  <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                  <XAxis
+                    dataKey="metric"
+                    tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
+                    tickLine={true}
+                    axisLine={true}
+                    tickMargin={10}
                   />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+                  <Brush
+                    dataKey="metric"
+                    height={30}
+                    stroke="#8884d8"
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    tick={{ fontSize: 12, fontWeight: 600 }}
+                    type="number"
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                    formatter={(value: number, name: string, props: any) => {
+                      const rawVal = props.payload.value;
+                      return [`${rawVal}`, "Value"];
+                    }}
+                    contentStyle={{ fontSize: 14, fontWeight: 600 }}
+                  />
+                  <Bar
+                    dataKey="percent"
+                    fill="#8884d8"
+                    radius={[5, 5, 0, 0]}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </>
   );
 };
 
-export default DynamicPieChart;
+export default DynamicBarChart;
