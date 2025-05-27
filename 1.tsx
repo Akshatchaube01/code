@@ -22,7 +22,7 @@ type TableProps = {
 
 const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [hiddenCountries, setHiddenCountries] = useState<string[]>([]);
 
   const toggleRow = (key: string) => {
     setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -30,34 +30,20 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    setSelectedCountries(selectedOptions);
+    setHiddenCountries(selectedOptions);
   };
 
-  // Collect all nested countries
-  const uniqueCountries = Array.from(
-    new Set(
-      data.flatMap((row) =>
-        row.details1?.map((child) => child.column2) ?? []
-      )
-    )
+  const allCountries = Array.from(
+    new Set(data.flatMap((row) => row.details1?.map((child) => child.column2) || []))
   );
 
-  // Filter data: show team rows only if they have matching children
-  const filteredData = data
-    .map((teamRow) => {
-      if (!teamRow.details1) return null;
+  const filteredData = data.map((teamRow) => {
+    const filteredChildren = teamRow.details1?.filter(
+      (child) => !hiddenCountries.includes(child.column2)
+    ) || [];
 
-      const filteredChildren = selectedCountries.length === 0
-        ? teamRow.details1
-        : teamRow.details1.filter((child) =>
-            selectedCountries.includes(child.column2)
-          );
-
-      return filteredChildren.length > 0
-        ? { ...teamRow, details1: filteredChildren }
-        : null;
-    })
-    .filter(Boolean) as RowData[];
+    return { ...teamRow, details1: filteredChildren };
+  });
 
   const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
@@ -99,16 +85,16 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   return (
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
-      {/* Country Filter */}
+      {/* Negative Country Filter */}
       <div className="mb-4">
-        <label className="mr-2 font-semibold">Filter by Work Location Country:</label>
+        <label className="mr-2 font-semibold">Hide Work Location Countries:</label>
         <select
           multiple
-          value={selectedCountries}
+          value={hiddenCountries}
           onChange={handleCountryChange}
           className="border border-gray-300 rounded p-1"
         >
-          {uniqueCountries.map((country) => (
+          {allCountries.map((country) => (
             <option key={country} value={country}>
               {country}
             </option>
@@ -136,10 +122,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
               .filter((col) => col.sub_columns && col.sub_columns.length > 0)
               .flatMap((col) =>
                 col.sub_columns!.map((subCol, j) => (
-                  <th
-                    key={`subcol-${col.name}-${j}`}
-                    className="px-4 py-3 text-left"
-                  >
+                  <th key={`subcol-${col.name}-${j}`} className="px-4 py-3 text-left">
                     {subCol}
                   </th>
                 ))
