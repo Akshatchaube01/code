@@ -1,7 +1,15 @@
 "use client";
 
 import { FC } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  TooltipProps,
+} from "recharts";
 
 import {
   Card,
@@ -11,13 +19,11 @@ import {
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/frame/ui/chart";
 
 type DataType = {
   metric: string;
-  value: number;  // percentage value 0-100
+  value: number; // percentage 0-100
   fill: string;
 };
 
@@ -32,45 +38,36 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
       <CardContent>
         <ChartContainer config={config}>
           <BarChart
-            data={data}
-            layout="horizontal"
-            margin={{ left: 0 }}
             width={500}
             height={300}
+            data={data}
+            margin={{ left: 0 }}
+            layout="horizontal"
           >
-            <CartesianGrid vertical={false} stroke="#bbb" strokeDasharray="5 5" />
+            <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
             <XAxis
               dataKey="metric"
-              type="category"
+              tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
               tickLine={true}
-              tickMargin={10}
               axisLine={true}
-              tickFormatter={(value) =>
-                config[value as keyof typeof config]?.label || value
-              }
+              tickMargin={10}
             />
             <YAxis
-              type="number"
-              domain={[0, 100]}   // Fixed 0-100%
-              tick={{ fontSize: 12, fontWeight: 600 }}
+              domain={[0, 100]}    // fix Y axis max to 100
               tickFormatter={(value) => `${value}%`}
+              tick={{ fontSize: 12, fontWeight: 600 }}
+              type="number"
             />
-            <ChartTooltip
-              cursor={true}
-              content={({ payload }) => {
-                if (!payload || payload.length === 0) return null;
-                const percentValue = payload[0].value;
-                return (
-                  <ChartTooltipContent>
-                    {`Value: ${percentValue}%`}
-                  </ChartTooltipContent>
-                );
-              }}
+            <Tooltip
+              cursor={{ fill: "rgba(0,0,0,0.1)" }}
+              formatter={(value: number) => `${value}%`}
+              contentStyle={{ fontSize: 14, fontWeight: 600 }}
             />
             <Bar
-              dataKey="value"  // Bar height based on percentage
-              radius={[5, 5, 0, 0]}
+              dataKey="value"
               fill="#8884d8"
+              radius={[5, 5, 0, 0]}
+              isAnimationActive={false}
             />
           </BarChart>
         </ChartContainer>
