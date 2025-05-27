@@ -49,10 +49,12 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
 
     const ir = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
     const or = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
+    const cxNum = typeof cx === "number" ? cx : parseFloat(cx);
+    const cyNum = typeof cy === "number" ? cy : parseFloat(cy);
     const radius = ir + (or - ir) * 0.5;
 
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const x = cxNum + radius * Math.cos(-midAngle * RADIAN);
+    const y = cyNum + radius * Math.sin(-midAngle * RADIAN);
 
     return (
       <text
@@ -88,32 +90,32 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                 <Label
                   content={({ viewBox }) => {
                     const v = viewBox as { cx?: number; cy?: number };
-                    if (typeof v?.cx === "number" && typeof v?.cy === "number") {
-                      return (
-                        <text
-                          x={v.cx}
-                          y={v.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
+                    const cx = typeof v.cx === "number" ? v.cx : 0;
+                    const cy = typeof v.cy === "number" ? v.cy : 0;
+
+                    return (
+                      <text
+                        x={cx}
+                        y={cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        <tspan
+                          x={cx}
+                          y={cy}
+                          className="fill-foreground text-3xl font-bold"
                         >
-                          <tspan
-                            x={v.cx}
-                            y={v.cy}
-                            className="fill-foreground text-3xl font-bold"
-                          >
-                            {totalValue.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={v.cx}
-                            y={v.cy + 24}
-                            className="fill-muted-foreground text-sm"
-                          >
-                            value
-                          </tspan>
-                        </text>
-                      );
-                    }
-                    return null;
+                          {totalValue.toLocaleString()}
+                        </tspan>
+                        <tspan
+                          x={cx}
+                          y={cy + 24}
+                          className="fill-muted-foreground text-sm"
+                        >
+                          value
+                        </tspan>
+                      </text>
+                    );
                   }}
                 />
               </Pie>
