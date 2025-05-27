@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FC, useMemo } from "react";
+import React, { FC, useMemo, useState } from "react";
 import {
   Pie,
   PieChart,
@@ -21,6 +21,8 @@ import {
   ChartTooltipContent,
 } from "@/components/frame/ui/chart";
 
+import { Button } from "@/components/ui/button"; // Adjust path based on your project
+
 type DataType = {
   metric: string;
   value: number;
@@ -36,6 +38,8 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   const totalValue = useMemo(() => {
     return data.reduce((acc, curr) => acc + Number(curr.value), 0);
   }, [data]);
+
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const renderPercentageLabel = ({
     cx = 0,
@@ -71,65 +75,73 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   };
 
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center max-h-[850px]">
-        <ChartContainer config={config}>
-          <div className="flex flex-col items-center max-h-[850px]">
-            <PieChart width={350} height={450}>
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="metric"
-                innerRadius={100}
-                outerRadius={160}
-                strokeWidth={5}
-                labelLine={false}
-                label={renderPercentageLabel}
-              >
-                <Label
-                  content={({ viewBox }) => {
-                    const v = viewBox as { cx?: number; cy?: number };
-                    const cx = typeof v.cx === "number" ? v.cx : 0;
-                    const cy = typeof v.cy === "number" ? v.cy : 0;
+    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
+      <div className="flex justify-end mb-2">
+        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
+          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
+        </Button>
+      </div>
 
-                    return (
-                      <text
-                        x={cx}
-                        y={cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
+      <Card>
+        <CardContent className="flex flex-col items-center max-h-[850px]">
+          <ChartContainer config={config}>
+            <div className="flex flex-col items-center max-h-[850px]">
+              <PieChart width={isFullScreen ? 600 : 350} height={isFullScreen ? 600 : 450}>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="metric"
+                  innerRadius={100}
+                  outerRadius={160}
+                  strokeWidth={5}
+                  labelLine={false}
+                  label={renderPercentageLabel}
+                >
+                  <Label
+                    content={({ viewBox }) => {
+                      const v = viewBox as { cx?: number; cy?: number };
+                      const cx = typeof v.cx === "number" ? v.cx : 0;
+                      const cy = typeof v.cy === "number" ? v.cy : 0;
+
+                      return (
+                        <text
                           x={cx}
                           y={cy}
-                          className="fill-foreground text-3xl font-bold"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
                         >
-                          {totalValue.toLocaleString()}
-                        </tspan>
-                        <tspan
-                          x={cx}
-                          y={cy + 24}
-                          className="fill-muted-foreground text-sm"
-                        >
-                          value
-                        </tspan>
-                      </text>
-                    );
-                  }}
+                          <tspan
+                            x={cx}
+                            y={cy}
+                            className="fill-foreground text-3xl font-bold"
+                          >
+                            {totalValue.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={cx}
+                            y={cy + 24}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            value
+                          </tspan>
+                        </text>
+                      );
+                    }}
+                  />
+                </Pie>
+                <Legend
+                  layout="horizontal"
+                  align="center"
+                  verticalAlign="bottom"
+                  wrapperStyle={{ width: "100%", textAlign: "center" }}
                 />
-              </Pie>
-              <Legend
-                layout="horizontal"
-                align="center"
-                verticalAlign="bottom"
-                wrapperStyle={{ width: "100%", textAlign: "center" }}
-              />
-            </PieChart>
-          </div>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+              </PieChart>
+            </div>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
