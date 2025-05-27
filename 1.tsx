@@ -27,7 +27,7 @@ type DataType = {
 };
 
 type NormalizedDataType = DataType & {
-  percent: number; // computed percentage for bar height
+  percent: number; // percentage of total sum (0-100)
 };
 
 type DynamicBarChartProps = {
@@ -36,16 +36,16 @@ type DynamicBarChartProps = {
 };
 
 const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
-  // Compute max value to normalize
-  const maxValue = useMemo(() => Math.max(...data.map(d => d.value)), [data]);
+  // Compute total sum to normalize
+  const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
 
   // Normalize data to percentage (0-100)
   const normalizedData: NormalizedDataType[] = useMemo(() => {
     return data.map(d => ({
       ...d,
-      percent: maxValue > 0 ? (d.value / maxValue) * 100 : 0,
+      percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
     }));
-  }, [data, maxValue]);
+  }, [data, totalValue]);
 
   return (
     <Card className="items-center">
@@ -68,7 +68,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
             />
             <YAxis
               domain={[0, 100]}    // Y axis fixed 0-100%
-              tickFormatter={(value) => `${value}%`}
+              tickFormatter={(value) => `${value.toFixed(0)}%`}
               tick={{ fontSize: 12, fontWeight: 600 }}
               type="number"
             />
@@ -76,14 +76,13 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
               cursor={{ fill: "rgba(0,0,0,0.1)" }}
               // Show actual raw value in tooltip
               formatter={(value: number, name: string, props: any) => {
-                // value here is the percent, get raw value from payload
                 const rawVal = props.payload.value;
                 return [`${rawVal}`, 'Value'];
               }}
               contentStyle={{ fontSize: 14, fontWeight: 600 }}
             />
             <Bar
-              dataKey="percent"   // bar height = normalized %
+              dataKey="percent"   // bar height = percentage of total
               fill="#8884d8"
               radius={[5, 5, 0, 0]}
               isAnimationActive={false}
