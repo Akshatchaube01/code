@@ -1,163 +1,136 @@
-"use client";
+import React, { useState, createElement, Fragment } from 'react';
 
-import React, { FC, useMemo, useState } from "react";
-import {
-  Pie,
-  PieChart,
-  Legend,
-  Label,
-  ResponsiveContainer,
-  PieLabelRenderProps,
-} from "recharts";
-
-import {
-  Card,
-  CardContent,
-} from "@/components/frame/ui/card";
-
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/frame/ui/chart";
-
-import { Button } from "@/components/ui/button"; // Adjust this import path if needed
-
-type DataType = {
-  metric: string;
-  value: number;
-  fill: string;
+type RowData = {
+  column1: string; // e.g., Country name
+  column2: string;
+  column3: number[];
+  column4: number;
+  details1?: RowData[];
 };
 
-type DynamicPieChartProps = {
-  data: DataType[];
-  config: ChartConfig;
+type Column = {
+  name: string;
+  sub_columns?: string[];
+  rowspan: number;
+  colspan: number;
 };
 
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
-  const totalValue = useMemo(() => {
-    return data.reduce((acc, curr) => acc + Number(curr.value), 0);
-  }, [data]);
+type TableProps = {
+  columns: Column[];
+  data: RowData[];
+};
 
-  const [isFullScreen, setIsFullScreen] = useState(false);
+const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
-  const renderPercentageLabel = ({
-    cx = 0,
-    cy = 0,
-    midAngle = 0,
-    innerRadius = 0,
-    outerRadius = 0,
-    percent = 0,
-  }: PieLabelRenderProps) => {
-    const RADIAN = Math.PI / 180;
-
-    const ir = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
-    const or = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
-    const cxNum = typeof cx === "number" ? cx : parseFloat(cx);
-    const cyNum = typeof cy === "number" ? cy : parseFloat(cy);
-    const radius = ir + (or - ir) * 0.5;
-
-    const x = cxNum + radius * Math.cos(-midAngle * RADIAN);
-    const y = cyNum + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#333"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {Math.round(percent * 100)}%
-      </text>
-    );
+  const toggleRow = (key: string) => {
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const uniqueCountries = Array.from(new Set(data.map((row) => row.column1)));
+
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+    setSelectedCountries(selectedOptions);
+  };
+
+  const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
+    const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
+    const cells = [
+      createElement(
+        'td',
+        {
+          key: 'col1',
+          className: 'px-4 py-2 font-medium',
+          onClick: () => (level === 0 ? toggleRow(rowKey) : undefined),
+          style: level === 0 ? { cursor: 'pointer' } : {},
+        },
+        row.column1
+      ),
+      createElement('td', { key: 'col2', className: 'px-4 py-2' }, row.column2),
+      ...row.column3.map((value, index) =>
+        createElement('td', { key: `col3-${index}`, className: 'px-4 py-2' }, value)
+      ),
+      createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4),
+    ];
+
+    const mainRow = createElement(
+      'tbody',
+      { key: rowKey },
+      createElement('tr', { className: 'border-t border-red-300 bg-white' }, ...cells)
+    );
+
+    const children: any[] = [];
+
+    if (expandedRows[rowKey] && row.details1) {
+      row.details1.forEach((child, i) => {
+        const childKey = `${rowKey}-child-${i}`;
+        children.push(...renderRow(child, level + 1, childKey));
+      });
+    }
+
+    return [mainRow, ...children];
+  };
+
+  const filteredData =
+    selectedCountries.length === 0
+      ? data
+      : data.filter((row) => selectedCountries.includes(row.column1));
+
   return (
-    <div
-      className={
-        isFullScreen
-          ? "fixed inset-0 bg-white z-50 p-6 overflow-hidden h-screen m-0"
-          : ""
-      }
-    >
-      <div className="flex justify-end mb-2">
-        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
-          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
-        </Button>
+    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
+      {/* Country Filter */}
+      <div className="mb-4">
+        <label className="mr-2 font-semibold">Filter by Country:</label>
+        <select
+          multiple
+          value={selectedCountries}
+          onChange={handleCountryChange}
+          className="border border-gray-300 rounded p-1"
+        >
+          {uniqueCountries.map((country) => (
+            <option key={country} value={country}>
+              {country}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center max-h-[850px]">
-          <ChartContainer config={config}>
-            <div
-              className={
-                isFullScreen
-                  ? "w-screen h-screen"
-                  : "w-[350px] h-[450px]"
-              }
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <Pie
-                    data={data}
-                    dataKey="value"
-                    nameKey="metric"
-                    innerRadius={100}
-                    outerRadius={160}
-                    strokeWidth={5}
-                    labelLine={false}
-                    label={renderPercentageLabel}
+      {/* Table */}
+      <table className="min-w-full table-auto">
+        <thead className="bg-red-600 text-white">
+          <tr>
+            {columns.map((col, i) => (
+              <th
+                key={`col-${i}`}
+                className="px-4 py-3 text-left"
+                colSpan={col.colspan}
+                rowSpan={col.rowspan}
+              >
+                {col.name}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {columns
+              .filter((col) => col.sub_columns && col.sub_columns.length > 0)
+              .flatMap((col) =>
+                col.sub_columns!.map((subCol, j) => (
+                  <th
+                    key={`subcol-${col.name}-${j}`}
+                    className="px-4 py-3 text-left"
                   >
-                    <Label
-                      content={({ viewBox }) => {
-                        const v = viewBox as { cx?: number; cy?: number };
-                        const cx = typeof v.cx === "number" ? v.cx : 0;
-                        const cy = typeof v.cy === "number" ? v.cy : 0;
-
-                        return (
-                          <text
-                            x={cx}
-                            y={cy}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                          >
-                            <tspan
-                              x={cx}
-                              y={cy}
-                              className="fill-foreground text-3xl font-bold"
-                            >
-                              {totalValue.toLocaleString()}
-                            </tspan>
-                            <tspan
-                              x={cx}
-                              y={cy + 24}
-                              className="fill-muted-foreground text-sm"
-                            >
-                              value
-                            </tspan>
-                          </text>
-                        );
-                      }}
-                    />
-                  </Pie>
-                  <Legend
-                    layout="horizontal"
-                    align="center"
-                    verticalAlign="bottom"
-                    wrapperStyle={{ width: "100%", textAlign: "center" }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+                    {subCol}
+                  </th>
+                ))
+              )}
+          </tr>
+        </thead>
+        {filteredData.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))}
+      </table>
     </div>
   );
 };
 
-export default DynamicPieChart;
+export default ExpandableUtilizationTable;
