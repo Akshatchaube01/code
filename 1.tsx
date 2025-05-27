@@ -1,7 +1,7 @@
 import React, { useState, createElement } from 'react';
 
 type RowData = {
-  column1: string; // e.g., Team or identifier
+  column1: string; // Team
   column2: string; // Work Location Country
   column3: number[];
   column4: number;
@@ -33,12 +33,31 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     setSelectedCountries(selectedOptions);
   };
 
-  const uniqueCountries = Array.from(new Set(data.map((row) => row.column2)));
+  // Collect all nested countries
+  const uniqueCountries = Array.from(
+    new Set(
+      data.flatMap((row) =>
+        row.details1?.map((child) => child.column2) ?? []
+      )
+    )
+  );
 
-  const filteredData =
-    selectedCountries.length === 0
-      ? data
-      : data.filter((row) => selectedCountries.includes(row.column2));
+  // Filter data: show team rows only if they have matching children
+  const filteredData = data
+    .map((teamRow) => {
+      if (!teamRow.details1) return null;
+
+      const filteredChildren = selectedCountries.length === 0
+        ? teamRow.details1
+        : teamRow.details1.filter((child) =>
+            selectedCountries.includes(child.column2)
+          );
+
+      return filteredChildren.length > 0
+        ? { ...teamRow, details1: filteredChildren }
+        : null;
+    })
+    .filter(Boolean) as RowData[];
 
   const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
