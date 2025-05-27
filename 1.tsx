@@ -1,6 +1,6 @@
 "use client";
 
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -8,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  TooltipProps,
 } from "recharts";
 
 import {
@@ -23,8 +22,12 @@ import {
 
 type DataType = {
   metric: string;
-  value: number; // percentage 0-100
+  value: number;   // raw value
   fill: string;
+};
+
+type NormalizedDataType = DataType & {
+  percent: number; // computed percentage for bar height
 };
 
 type DynamicBarChartProps = {
@@ -33,6 +36,17 @@ type DynamicBarChartProps = {
 };
 
 const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
+  // Compute max value to normalize
+  const maxValue = useMemo(() => Math.max(...data.map(d => d.value)), [data]);
+
+  // Normalize data to percentage (0-100)
+  const normalizedData: NormalizedDataType[] = useMemo(() => {
+    return data.map(d => ({
+      ...d,
+      percent: maxValue > 0 ? (d.value / maxValue) * 100 : 0,
+    }));
+  }, [data, maxValue]);
+
   return (
     <Card className="items-center">
       <CardContent>
@@ -40,7 +54,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
           <BarChart
             width={500}
             height={300}
-            data={data}
+            data={normalizedData}
             margin={{ left: 0 }}
             layout="horizontal"
           >
@@ -53,18 +67,23 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
               tickMargin={10}
             />
             <YAxis
-              domain={[0, 100]}    // fix Y axis max to 100
+              domain={[0, 100]}    // Y axis fixed 0-100%
               tickFormatter={(value) => `${value}%`}
               tick={{ fontSize: 12, fontWeight: 600 }}
               type="number"
             />
             <Tooltip
               cursor={{ fill: "rgba(0,0,0,0.1)" }}
-              formatter={(value: number) => `${value}%`}
+              // Show actual raw value in tooltip
+              formatter={(value: number, name: string, props: any) => {
+                // value here is the percent, get raw value from payload
+                const rawVal = props.payload.value;
+                return [`${rawVal}`, 'Value'];
+              }}
               contentStyle={{ fontSize: 14, fontWeight: 600 }}
             />
             <Bar
-              dataKey="value"
+              dataKey="percent"   // bar height = normalized %
               fill="#8884d8"
               radius={[5, 5, 0, 0]}
               isAnimationActive={false}
