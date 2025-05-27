@@ -2,7 +2,7 @@
 
 import React, { FC, useMemo } from "react";
 import { TrendingUp } from "lucide-react";
-import { Label, Pie, PieChart, Legend } from "recharts";
+import { Pie, PieChart, Legend, Label, PieLabelRenderProps } from "recharts";
 
 import {
   Card,
@@ -36,13 +36,41 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
     return data.reduce((acc, curr) => acc + curr.value, 0);
   }, [data]);
 
+  // Custom label to show percentage
+  const renderPercentageLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+  }: PieLabelRenderProps) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#333"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="text-xs font-medium"
+      >
+        {(percent * 100).toFixed(1)}%
+      </text>
+    );
+  };
+
   return (
     <Card>
-      <CardContent>
+      <CardContent className="flex flex-col items-center max-h-[850px]">
         <ChartContainer config={config}>
-          <div className="flex flex-col items-center">
-            <div className="w-full max-w-[450px] aspect-square">
-              <PieChart width={450} height={450}>
+          <div className="flex flex-col items-center max-h-[850px]">
+            <div>
+              <PieChart width={350} height={450}>
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Pie
                   data={data}
@@ -52,6 +80,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   outerRadius={160}
                   strokeWidth={5}
                   labelLine={false}
+                  label={renderPercentageLabel}
                 >
                   <Label
                     content={({ viewBox }) => {
@@ -72,7 +101,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                             </tspan>
                             <tspan
                               x={viewBox.cx}
-                              y={(viewBox.cy || 0) + 24}
+                              y={(viewBox.cy || 8) + 24}
                               className="fill-muted-foreground text-sm"
                             >
                               value
@@ -84,16 +113,10 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                     }}
                   />
                 </Pie>
-              </PieChart>
-            </div>
-
-            {/* Legend below the chart */}
-            <div className="w-full max-w-[450px] mt-4">
-              <PieChart width={450} height={100}>
                 <Legend
                   layout="horizontal"
                   align="center"
-                  verticalAlign="middle"
+                  verticalAlign="bottom"
                   wrapperStyle={{ width: "100%", textAlign: "center" }}
                 />
               </PieChart>
