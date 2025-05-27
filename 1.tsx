@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useMemo } from "react";
+import { FC, useMemo, useRef, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -22,12 +22,12 @@ import {
 
 type DataType = {
   metric: string;
-  value: number;   // raw value
+  value: number;
   fill: string;
 };
 
 type NormalizedDataType = DataType & {
-  percent: number; // percentage of total sum (0-100)
+  percent: number;
 };
 
 type DynamicBarChartProps = {
@@ -36,10 +36,11 @@ type DynamicBarChartProps = {
 };
 
 const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
-  // Compute total sum to normalize
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
 
-  // Normalize data to percentage (0-100)
   const normalizedData: NormalizedDataType[] = useMemo(() => {
     return data.map(d => ({
       ...d,
@@ -47,13 +48,53 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
     }));
   }, [data, totalValue]);
 
+  // Fullscreen toggle handler
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (containerRef.current) {
+        containerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Listen for fullscreen change (in case user presses ESC)
+  // Update state accordingly
+  React.useEffect(() => {
+    const onFullScreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFullScreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullScreenChange);
+  }, []);
+
   return (
-    <Card className="items-center">
-      <CardContent>
+    <Card className="items-center" ref={containerRef} style={{ position: 'relative' }}>
+      <button
+        onClick={toggleFullscreen}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          zIndex: 10,
+          padding: '6px 12px',
+          cursor: 'pointer',
+          borderRadius: 4,
+          border: '1px solid #888',
+          background: isFullscreen ? '#eee' : '#fff',
+        }}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+      </button>
+      <CardContent style={{ width: isFullscreen ? '100vw' : 500, height: isFullscreen ? '100vh' : 300 }}>
         <ChartContainer config={config}>
           <BarChart
-            width={500}
-            height={300}
+            width={isFullscreen ? window.innerWidth : 500}
+            height={isFullscreen ? window.innerHeight - 50 : 300} // leave some space for button
             data={normalizedData}
             margin={{ left: 0 }}
             layout="horizontal"
@@ -67,14 +108,13 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
               tickMargin={10}
             />
             <YAxis
-              domain={[0, 100]}    // Y axis fixed 0-100%
+              domain={[0, 100]}
               tickFormatter={(value) => `${value.toFixed(0)}%`}
               tick={{ fontSize: 12, fontWeight: 600 }}
               type="number"
             />
             <Tooltip
               cursor={{ fill: "rgba(0,0,0,0.1)" }}
-              // Show actual raw value in tooltip
               formatter={(value: number, name: string, props: any) => {
                 const rawVal = props.payload.value;
                 return [`${rawVal}`, 'Value'];
@@ -82,7 +122,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
               contentStyle={{ fontSize: 14, fontWeight: 600 }}
             />
             <Bar
-              dataKey="percent"   // bar height = percentage of total
+              dataKey="percent"
               fill="#8884d8"
               radius={[5, 5, 0, 0]}
               isAnimationActive={false}
