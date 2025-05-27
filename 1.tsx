@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 type RowData = {
   column1: string; // Team
@@ -22,24 +22,30 @@ type TableProps = {
 
 const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [hiddenCountries, setHiddenCountries] = useState<string[]>([]);
-
-  const toggleRow = (key: string) => {
-    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const [shownCountries, setShownCountries] = useState<string[]>([]);
 
   const allCountries = Array.from(
     new Set(data.flatMap((team) => team.details1?.map((child) => child.column2) || []))
   );
 
+  useEffect(() => {
+    setShownCountries(allCountries); // All visible by default
+  }, [data]);
+
+  const toggleRow = (key: string) => {
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const toggleCountry = (country: string) => {
-    setHiddenCountries((prev) =>
-      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
+    setShownCountries((prev) =>
+      prev.includes(country)
+        ? prev.filter((c) => c !== country)
+        : [...prev, country]
     );
   };
 
   const clearFilters = () => {
-    setHiddenCountries([]);
+    setShownCountries(allCountries);
   };
 
   const renderRow = (
@@ -86,7 +92,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
     if (isExpandable && expandedRows[rowKey]) {
       row.details1!.forEach((child, i) => {
-        const visible = !hiddenCountries.includes(child.column2);
+        const visible = shownCountries.includes(child.column2);
         children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, visible));
       });
     }
@@ -94,11 +100,10 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  // Filter teams where at least one child is visible
   const filteredData = data.filter((team) => {
     const children = team.details1 || [];
-    const visibleChildren = children.filter(
-      (child) => !hiddenCountries.includes(child.column2)
+    const visibleChildren = children.filter((child) =>
+      shownCountries.includes(child.column2)
     );
     return visibleChildren.length > 0;
   });
@@ -107,14 +112,14 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
       {/* Filter UI */}
       <div className="mb-4">
-        <p className="font-semibold mb-2">Hide Work Location Countries:</p>
+        <p className="font-semibold mb-2">Select Countries to Display:</p>
         <div className="flex flex-wrap gap-4">
           {allCountries.map((country) => (
             <label key={country} className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 value={country}
-                checked={hiddenCountries.includes(country)}
+                checked={shownCountries.includes(country)}
                 onChange={() => toggleCountry(country)}
               />
               <span>{country}</span>
