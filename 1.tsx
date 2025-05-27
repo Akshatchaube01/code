@@ -7,14 +7,11 @@ import {
   Legend,
   Label,
   PieLabelRenderProps,
-  Tooltip,
 } from "recharts";
 
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/frame/ui/card";
 
 import {
@@ -49,7 +46,11 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
     percent = 0,
   }: PieLabelRenderProps) => {
     const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+
+    const ir = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
+    const or = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
+    const radius = ir + (or - ir) * 0.5;
+
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
