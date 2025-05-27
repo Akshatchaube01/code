@@ -6,6 +6,7 @@ import {
   PieChart,
   Legend,
   Label,
+  ResponsiveContainer,
   PieLabelRenderProps,
 } from "recharts";
 
@@ -21,7 +22,7 @@ import {
   ChartTooltipContent,
 } from "@/components/frame/ui/chart";
 
-import { Button } from "@/components/ui/button"; // Adjust path based on your project
+import { Button } from "@/components/ui/button"; // Adjust this import path as needed
 
 type DataType = {
   metric: string;
@@ -85,58 +86,66 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
       <Card>
         <CardContent className="flex flex-col items-center max-h-[850px]">
           <ChartContainer config={config}>
-            <div className="flex flex-col items-center max-h-[850px]">
-              <PieChart width={isFullScreen ? 600 : 350} height={isFullScreen ? 600 : 450}>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="metric"
-                  innerRadius={100}
-                  outerRadius={160}
-                  strokeWidth={5}
-                  labelLine={false}
-                  label={renderPercentageLabel}
-                >
-                  <Label
-                    content={({ viewBox }) => {
-                      const v = viewBox as { cx?: number; cy?: number };
-                      const cx = typeof v.cx === "number" ? v.cx : 0;
-                      const cy = typeof v.cy === "number" ? v.cy : 0;
+            <div
+              className={
+                isFullScreen
+                  ? "w-full h-[80vh]"
+                  : "w-[350px] h-[450px]"
+              }
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="metric"
+                    innerRadius={100}
+                    outerRadius={160}
+                    strokeWidth={5}
+                    labelLine={false}
+                    label={renderPercentageLabel}
+                  >
+                    <Label
+                      content={({ viewBox }) => {
+                        const v = viewBox as { cx?: number; cy?: number };
+                        const cx = typeof v.cx === "number" ? v.cx : 0;
+                        const cy = typeof v.cy === "number" ? v.cy : 0;
 
-                      return (
-                        <text
-                          x={cx}
-                          y={cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan
+                        return (
+                          <text
                             x={cx}
                             y={cy}
-                            className="fill-foreground text-3xl font-bold"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
                           >
-                            {totalValue.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={cx}
-                            y={cy + 24}
-                            className="fill-muted-foreground text-sm"
-                          >
-                            value
-                          </tspan>
-                        </text>
-                      );
-                    }}
+                            <tspan
+                              x={cx}
+                              y={cy}
+                              className="fill-foreground text-3xl font-bold"
+                            >
+                              {totalValue.toLocaleString()}
+                            </tspan>
+                            <tspan
+                              x={cx}
+                              y={cy + 24}
+                              className="fill-muted-foreground text-sm"
+                            >
+                              value
+                            </tspan>
+                          </text>
+                        );
+                      }}
+                    />
+                  </Pie>
+                  <Legend
+                    layout="horizontal"
+                    align="center"
+                    verticalAlign="bottom"
+                    wrapperStyle={{ width: "100%", textAlign: "center" }}
                   />
-                </Pie>
-                <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  wrapperStyle={{ width: "100%", textAlign: "center" }}
-                />
-              </PieChart>
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </ChartContainer>
         </CardContent>
