@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useMemo, useRef, useState } from "react";
+import React, { FC, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ResponsiveContainer,
 } from "recharts";
 
 import {
@@ -20,14 +21,16 @@ import {
   ChartContainer,
 } from "@/components/frame/ui/chart";
 
+import { Button } from "@/components/ui/button"; // Adjust path as needed
+
 type DataType = {
   metric: string;
-  value: number;
+  value: number;   // raw value
   fill: string;
 };
 
 type NormalizedDataType = DataType & {
-  percent: number;
+  percent: number; // percentage of total sum (0-100)
 };
 
 type DynamicBarChartProps = {
@@ -36,11 +39,10 @@ type DynamicBarChartProps = {
 };
 
 const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
+  // Compute total sum to normalize
   const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
 
+  // Normalize data to percentage (0-100)
   const normalizedData: NormalizedDataType[] = useMemo(() => {
     return data.map(d => ({
       ...d,
@@ -48,89 +50,62 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
     }));
   }, [data, totalValue]);
 
-  // Fullscreen toggle handler
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      if (containerRef.current) {
-        containerRef.current.requestFullscreen();
-        setIsFullscreen(true);
-      }
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
-
-  // Listen for fullscreen change (in case user presses ESC)
-  // Update state accordingly
-  React.useEffect(() => {
-    const onFullScreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-    document.addEventListener("fullscreenchange", onFullScreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullScreenChange);
-  }, []);
+  // Fullscreen state toggle
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   return (
-    <Card className="items-center" ref={containerRef} style={{ position: 'relative' }}>
-      <button
-        onClick={toggleFullscreen}
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          zIndex: 10,
-          padding: '6px 12px',
-          cursor: 'pointer',
-          borderRadius: 4,
-          border: '1px solid #888',
-          background: isFullscreen ? '#eee' : '#fff',
-        }}
-        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-      >
-        {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-      </button>
-      <CardContent style={{ width: isFullscreen ? '100vw' : 500, height: isFullscreen ? '100vh' : 300 }}>
-        <ChartContainer config={config}>
-          <BarChart
-            width={isFullscreen ? window.innerWidth : 500}
-            height={isFullscreen ? window.innerHeight - 50 : 300} // leave some space for button
-            data={normalizedData}
-            margin={{ left: 0 }}
-            layout="horizontal"
-          >
-            <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
-            <XAxis
-              dataKey="metric"
-              tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
-              tickLine={true}
-              axisLine={true}
-              tickMargin={10}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value.toFixed(0)}%`}
-              tick={{ fontSize: 12, fontWeight: 600 }}
-              type="number"
-            />
-            <Tooltip
-              cursor={{ fill: "rgba(0,0,0,0.1)" }}
-              formatter={(value: number, name: string, props: any) => {
-                const rawVal = props.payload.value;
-                return [`${rawVal}`, 'Value'];
-              }}
-              contentStyle={{ fontSize: 14, fontWeight: 600 }}
-            />
-            <Bar
-              dataKey="percent"
-              fill="#8884d8"
-              radius={[5, 5, 0, 0]}
-              isAnimationActive={false}
-            />
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
+      <div className="flex justify-end mb-2">
+        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
+          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="flex flex-col items-center max-h-[850px]">
+          <ChartContainer config={config}>
+            <div className={isFullScreen ? "w-full h-[80vh]" : "w-[500px] h-[300px]"}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={normalizedData}
+                  margin={{ left: 0 }}
+                  layout="horizontal"
+                >
+                  <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                  <XAxis
+                    dataKey="metric"
+                    tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
+                    tickLine={true}
+                    axisLine={true}
+                    tickMargin={10}
+                  />
+                  <YAxis
+                    domain={[0, 100]}    // Y axis fixed 0-100%
+                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    tick={{ fontSize: 12, fontWeight: 600 }}
+                    type="number"
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                    formatter={(value: number, name: string, props: any) => {
+                      const rawVal = props.payload.value;
+                      return [`${rawVal}`, "Value"];
+                    }}
+                    contentStyle={{ fontSize: 14, fontWeight: 600 }}
+                  />
+                  <Bar
+                    dataKey="percent"   // bar height = percentage of total
+                    fill="#8884d8"
+                    radius={[5, 5, 0, 0]}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
