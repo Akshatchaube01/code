@@ -53,59 +53,110 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
   // Fullscreen state toggle
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // Chart size fixed before fullscreen is clicked
+  const chartWidth = 500;
+  const chartHeight = 300;
+
   return (
-    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
+    <>
       <div className="flex justify-end mb-2">
         <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
           {isFullScreen ? "Exit Full Screen" : "Full Screen"}
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center max-h-[850px]">
-          <ChartContainer config={config}>
-            <div className={isFullScreen ? "w-full h-[80vh]" : "w-[500px] h-[300px]"}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={normalizedData}
-                  margin={{ left: 0 }}
-                  layout="horizontal"
-                >
-                  <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
-                  <XAxis
-                    dataKey="metric"
-                    tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
-                    tickLine={true}
-                    axisLine={true}
-                    tickMargin={10}
-                  />
-                  <YAxis
-                    domain={[0, 100]}    // Y axis fixed 0-100%
-                    tickFormatter={(value) => `${value.toFixed(0)}%`}
-                    tick={{ fontSize: 12, fontWeight: 600 }}
-                    type="number"
-                  />
-                  <Tooltip
-                    cursor={{ fill: "rgba(0,0,0,0.1)" }}
-                    formatter={(value: number, name: string, props: any) => {
-                      const rawVal = props.payload.value;
-                      return [`${rawVal}`, "Value"];
-                    }}
-                    contentStyle={{ fontSize: 14, fontWeight: 600 }}
-                  />
-                  <Bar
-                    dataKey="percent"   // bar height = percentage of total
-                    fill="#8884d8"
-                    radius={[5, 5, 0, 0]}
-                    isAnimationActive={false}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+      {isFullScreen ? (
+        <div className="fixed inset-0 bg-white z-50 p-6 overflow-auto">
+          <Card>
+            <CardContent className="flex flex-col items-center max-h-[90vh]">
+              <ChartContainer config={config}>
+                <div className="w-full h-[80vh]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={normalizedData}
+                      margin={{ left: 0 }}
+                      layout="horizontal"
+                    >
+                      <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                      <XAxis
+                        dataKey="metric"
+                        tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
+                        tickLine={true}
+                        axisLine={true}
+                        tickMargin={10}
+                      />
+                      <YAxis
+                        domain={[0, 100]}    // Y axis fixed 0-100%
+                        tickFormatter={(value) => `${value.toFixed(0)}%`}
+                        tick={{ fontSize: 12, fontWeight: 600 }}
+                        type="number"
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                        formatter={(value: number, name: string, props: any) => {
+                          const rawVal = props.payload.value;
+                          return [`${rawVal}`, "Value"];
+                        }}
+                        contentStyle={{ fontSize: 14, fontWeight: 600 }}
+                      />
+                      <Bar
+                        dataKey="percent"
+                        fill="#8884d8"
+                        radius={[5, 5, 0, 0]}
+                        isAnimationActive={false}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card className="items-center">
+          <CardContent>
+            <ChartContainer config={config}>
+              <BarChart
+                width={chartWidth}
+                height={chartHeight}
+                data={normalizedData}
+                margin={{ left: 0 }}
+                layout="horizontal"
+              >
+                <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                <XAxis
+                  dataKey="metric"
+                  tickFormatter={(value) => config[value as keyof typeof config]?.label || value}
+                  tickLine={true}
+                  axisLine={true}
+                  tickMargin={10}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value.toFixed(0)}%`}
+                  tick={{ fontSize: 12, fontWeight: 600 }}
+                  type="number"
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                  formatter={(value: number, name: string, props: any) => {
+                    const rawVal = props.payload.value;
+                    return [`${rawVal}`, "Value"];
+                  }}
+                  contentStyle={{ fontSize: 14, fontWeight: 600 }}
+                />
+                <Bar
+                  dataKey="percent"
+                  fill="#8884d8"
+                  radius={[5, 5, 0, 0]}
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 };
 
