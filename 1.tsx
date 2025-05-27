@@ -22,7 +22,7 @@ type TableProps = {
 
 const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [hiddenCountries, setHiddenCountries] = useState<string[]>([]);
 
   const toggleRow = (key: string) => {
     setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -30,45 +30,30 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-    setSelectedCountries(selectedOptions);
+    setHiddenCountries(selectedOptions);
   };
 
-  // Collect all nested countries
-  const uniqueCountries = Array.from(
-    new Set(
-      data.flatMap((row) =>
-        row.details1?.map((child) => child.column2) ?? []
-      )
-    )
+  const allCountries = Array.from(
+    new Set(data.flatMap((row) => row.details1?.map((child) => child.column2) || []))
   );
-
-  // Filter data: show team rows only if they have matching children
-  const filteredData = data
-    .map((teamRow) => {
-      if (!teamRow.details1) return null;
-
-      const filteredChildren = selectedCountries.length === 0
-        ? teamRow.details1
-        : teamRow.details1.filter((child) =>
-            selectedCountries.includes(child.column2)
-          );
-
-      return filteredChildren.length > 0
-        ? { ...teamRow, details1: filteredChildren }
-        : null;
-    })
-    .filter(Boolean) as RowData[];
 
   const renderRow = (row: RowData, level = 0, keyPrefix = ''): any[] => {
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
+
+    const visibleChildren = row.details1?.filter(
+      (child) => !hiddenCountries.includes(child.column2)
+    ) || [];
+
+    const isExpandable = level === 0 && visibleChildren.length > 0;
+
     const cells = [
       createElement(
         'td',
         {
           key: 'col1',
           className: 'px-4 py-2 font-medium',
-          onClick: () => (level === 0 ? toggleRow(rowKey) : undefined),
-          style: level === 0 ? { cursor: 'pointer' } : {},
+          onClick: isExpandable ? () => toggleRow(rowKey) : undefined,
+          style: isExpandable ? { cursor: 'pointer' } : {},
         },
         row.column1
       ),
@@ -87,8 +72,8 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
     const children: any[] = [];
 
-    if (expandedRows[rowKey] && row.details1) {
-      row.details1.forEach((child, i) => {
+    if (isExpandable && expandedRows[rowKey]) {
+      visibleChildren.forEach((child, i) => {
         const childKey = `${rowKey}-child-${i}`;
         children.push(...renderRow(child, level + 1, childKey));
       });
@@ -101,14 +86,14 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-2">
       {/* Country Filter */}
       <div className="mb-4">
-        <label className="mr-2 font-semibold">Filter by Work Location Country:</label>
+        <label className="mr-2 font-semibold">Hide Work Location Countries:</label>
         <select
           multiple
-          value={selectedCountries}
+          value={hiddenCountries}
           onChange={handleCountryChange}
           className="border border-gray-300 rounded p-1"
         >
-          {uniqueCountries.map((country) => (
+          {allCountries.map((country) => (
             <option key={country} value={country}>
               {country}
             </option>
@@ -136,17 +121,14 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
               .filter((col) => col.sub_columns && col.sub_columns.length > 0)
               .flatMap((col) =>
                 col.sub_columns!.map((subCol, j) => (
-                  <th
-                    key={`subcol-${col.name}-${j}`}
-                    className="px-4 py-3 text-left"
-                  >
+                  <th key={`subcol-${col.name}-${j}`} className="px-4 py-3 text-left">
                     {subCol}
                   </th>
                 ))
               )}
           </tr>
         </thead>
-        {filteredData.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))}
+        {data.flatMap((row, idx) => renderRow(row, 0, `row-${idx}`))}
       </table>
     </div>
   );
