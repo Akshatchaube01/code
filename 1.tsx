@@ -17,9 +17,8 @@ import {
 
 type DataType = {
   metric: string;
-  value: number; // actual value
+  value: number;  // percentage value 0-100
   fill: string;
-  percent: number; // percentage value for bar height (0-100)
 };
 
 type DynamicBarChartProps = {
@@ -52,7 +51,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
             />
             <YAxis
               type="number"
-              domain={[0, 100]}  // fixed from 0 to 100
+              domain={[0, 100]}   // Fixed 0-100%
               tick={{ fontSize: 12, fontWeight: 600 }}
               tickFormatter={(value) => `${value}%`}
             />
@@ -60,16 +59,16 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
               cursor={true}
               content={({ payload }) => {
                 if (!payload || payload.length === 0) return null;
-                const actualValue = payload[0].payload.value;
+                const percentValue = payload[0].value;
                 return (
                   <ChartTooltipContent>
-                    {`Value: ${actualValue}`}
+                    {`Value: ${percentValue}%`}
                   </ChartTooltipContent>
                 );
               }}
             />
             <Bar
-              dataKey="percent"  // bar height based on percentage
+              dataKey="value"  // Bar height based on percentage
               radius={[5, 5, 0, 0]}
               fill="#8884d8"
             />
