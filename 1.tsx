@@ -1,178 +1,120 @@
-import React, { useState, useEffect } from 'react';
+"use client";
 
-type RowData = {
-  column1: string; // Team
-  column2: string; // Work Location Country
-  column3: number[];
-  column4: number;
-  details1?: RowData[];
+import React, { FC, useMemo, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Brush,
+  Text,
+} from "recharts";
+
+import { Card, CardContent } from "@/components/frame/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ChartConfig,
+  ChartContainer,
+} from "@/components/frame/ui/chart";
+
+type DataType = {
+  metric: string;
+  value: number;
+  fill: string;
 };
 
-type Column = {
-  name: string;
-  sub_columns?: string[];
-  rowspan: number;
-  colspan: number;
+type NormalizedDataType = DataType & {
+  percent: number;
 };
 
-type TableProps = {
-  columns: Column[];
-  data: RowData[];
+type DynamicBarChartProps = {
+  data: DataType[];
+  config: ChartConfig;
 };
 
-const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [shownCountries, setShownCountries] = useState<string[]>([]);
-
-  const allCountries = Array.from(
-    new Set(data.flatMap((team) => team.details1?.map((child) => child.column2) || []))
-  );
-
-  useEffect(() => {
-    setShownCountries(allCountries);
-  }, [data]);
-
-  const toggleRow = (key: string) => {
-    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const toggleCountry = (country: string) => {
-    setShownCountries((prev) =>
-      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
-    );
-  };
-
-  const clearFilters = () => {
-    setShownCountries(allCountries);
-  };
-
-  const renderRow = (
-    row: RowData,
-    level: number,
-    keyPrefix: string,
-    isVisible: boolean
-  ): any[] => {
-    if (!isVisible) return [];
-
-    const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
-    const isParent = level === 0;
-    const isExpandable = isParent && row.details1 && row.details1.length > 0;
-
-    const cells = [
-      <td key="col1" className="px-4 py-2 font-medium">
-        {row.column1}
-      </td>,
-      <td key="col2" className="px-4 py-2">
-        {row.column2}
-      </td>,
-      ...row.column3.map((value, idx) => (
-        <td key={`col3-${idx}`} className="px-4 py-2">
-          {value}
-        </td>
-      )),
-      <td key="col4" className="px-4 py-2">
-        {row.column4}
-      </td>,
-    ];
-
-    const mainRow = (
-      <tbody key={rowKey}>
-        <tr
-          className="border-t border-red-300 bg-white"
-          onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
-          style={isExpandable ? { cursor: 'pointer' } : {}}
-        >
-          {cells}
-        </tr>
-      </tbody>
-    );
-
-    const children: any[] = [];
-
-    if (isExpandable && expandedRows[rowKey]) {
-      const visibleChildren = row.details1!.filter((child) =>
-        shownCountries.includes(child.column2)
-      );
-
-      if (visibleChildren.length > 0) {
-        children.push(
-          <tr key={`${rowKey}-subheader`} className="bg-gray-100 font-semibold">
-            <td className="px-4 py-2">Team</td>
-            <td className="px-4 py-2">Work Location Country</td>
-            {row.column3.map((_, i) => (
-              <td key={`sh-col3-${i}`} className="px-4 py-2">
-                Metric {i + 1}
-              </td>
-            ))}
-            <td className="px-4 py-2">Total</td>
-          </tr>
-        );
-
-        visibleChildren.forEach((child, i) => {
-          children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, true));
-        });
-      }
-    }
-
-    return [mainRow, ...children];
-  };
-
-  const filteredData = data.filter((team) => {
-    const children = team.details1 || [];
-    const visibleChildren = children.filter((child) =>
-      shownCountries.includes(child.column2)
-    );
-    return visibleChildren.length > 0;
-  });
+const renderWrappedTick = (props: any) => {
+  const { x, y, payload, width = 80 } = props;
+  const words = (payload.value || "").toString().split(/\s+/);
+  const lineHeight = 12;
 
   return (
-    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
-      <div className="mb-4">
-        <p className="font-semibold mb-2">Select Countries to Display:</p>
-        <div className="flex flex-wrap gap-4">
-          {allCountries.map((country) => (
-            <label key={country} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                value={country}
-                checked={shownCountries.includes(country)}
-                onChange={() => toggleCountry(country)}
-              />
-              <span>{country}</span>
-            </label>
-          ))}
-        </div>
-        <button
-          onClick={clearFilters}
-          className="mt-3 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Clear Filters
-        </button>
+    <Text x={x} y={y + 10} width={width} textAnchor="middle" verticalAnchor="start">
+      {words.map((word: string, index: number) => (
+        <tspan x={x} dy={index === 0 ? 0 : lineHeight} key={index}>
+          {word}
+        </tspan>
+      ))}
+    </Text>
+  );
+};
+
+const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
+
+  const normalizedData: NormalizedDataType[] = useMemo(() => {
+    return data.map((d) => ({
+      ...d,
+      percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
+    }));
+  }, [data, totalValue]);
+
+  return (
+    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
+      <div className="flex justify-end mb-2">
+        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
+          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
+        </Button>
       </div>
 
-      <table className="min-w-full table-auto">
-        <thead className="bg-red-600 text-white">
-          <tr>
-            {columns.map((col, i) =>
-              col.name === 'Work Location Country' ? null : (
-                <th
-                  key={`col-${i}`}
-                  className="px-4 py-3 text-left"
-                  colSpan={col.colspan}
-                  rowSpan={col.rowspan}
+      <Card>
+        <CardContent className="flex flex-col items-center max-h-[850px]">
+          <ChartContainer config={config}>
+            <div className={isFullScreen ? "w-full h-[80vh]" : "w-[700px] h-[450px]"}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={normalizedData}
+                  margin={{ top: 20, right: 30, left: 0, bottom: 60 }}
                 >
-                  {col.name}
-                </th>
-              )
-            )}
-          </tr>
-        </thead>
-        {filteredData.flatMap((team, idx) =>
-          renderRow(team, 0, `team-${idx}`, true)
-        )}
-      </table>
+                  <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+                  <XAxis
+                    dataKey="metric"
+                    tick={renderWrappedTick}
+                    interval={0}
+                    height={60}
+                    tickMargin={10}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    tick={{ fontSize: 12, fontWeight: 600 }}
+                  />
+                  <Tooltip
+                    formatter={(value: number, name: string, props: any) => {
+                      const rawVal = props.payload.value;
+                      return [`${rawVal}`, "Value"];
+                    }}
+                    cursor={{ fill: "rgba(0,0,0,0.1)" }}
+                  />
+                  <Bar
+                    dataKey="percent"
+                    fill="#8884d8"
+                    radius={[5, 5, 0, 0]}
+                    isAnimationActive={false}
+                  />
+                  <Brush dataKey="metric" height={20} stroke="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default ExpandableUtilizationTable;
+export default DynamicBarChart;
