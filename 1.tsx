@@ -1,9 +1,11 @@
 const maxLabelLength = useMemo(() => {
   return data.reduce((max, d) => {
-    const label = config[d.metric as keyof typeof config]?.label || d.metric;
+    const rawLabel = config[d.metric as keyof typeof config]?.label || d.metric;
+    const label = String(rawLabel); // ensure it's a string
     return Math.max(max, label.length);
   }, 0);
 }, [data, config]);
+
 
 const axisHeight = Math.min(20 + maxLabelLength * 7, 120);  // Cap height to avoid extreme cases
 const labelFontSize = maxLabelLength > 10 ? 10 : 12;
