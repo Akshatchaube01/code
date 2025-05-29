@@ -62,7 +62,11 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
 
   const renderChart = (width: number | string, height: number | string) => (
     <ResponsiveContainer width={width} height={height}>
-      <BarChart data={normalizedData} margin={{ left: 0 }} layout="horizontal">
+      <BarChart
+        data={normalizedData}
+        margin={{ top: 40, left: 0 }}
+        layout="horizontal"
+      >
         <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
         <XAxis
           dataKey="metric"
@@ -75,6 +79,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
           tickMargin={10}
           textAnchor="end"
           height={axisHeight}
+          tick={{ fontSize: 12, fontWeight: 700 }}
         />
         <YAxis
           domain={[0, 100]}
@@ -85,7 +90,10 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
         <Brush dataKey="metric" height={30} stroke="#8884d8" />
         <Tooltip
           cursor={{ fill: "rgba(0,0,0,0.1)" }}
-          formatter={(value: number) => [`${value.toFixed(2)}`, "Value"]}
+          formatter={(value: number, name: string, props: any) => {
+            const rawValue = props?.payload?.value;
+            return [rawValue.toFixed(2), "Actual Value"];
+          }}
           contentStyle={{ fontSize: 14, fontWeight: 600 }}
         />
         <Bar
@@ -96,6 +104,7 @@ const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
           label={{
             position: "top",
             angle: -90,
+            dy: -20,
             formatter: (value: number) => `${value.toFixed(2)}%`,
             fontSize: labelFontSize,
             fontWeight: 500,
