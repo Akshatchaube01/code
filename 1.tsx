@@ -5,6 +5,7 @@ import {
   Pie,
   PieChart,
   Tooltip as RechartsTooltip,
+  Legend,
   PieLabelRenderProps,
 } from "recharts";
 
@@ -88,43 +89,24 @@ const CustomTooltip = ({
   );
 };
 
-// Custom Legend
-const CustomLegend = ({
-  data,
-  originalData,
-  total,
-}: {
-  data: DataType[];
-  originalData: DataType[];
-  total: number;
-}) => {
+// Custom Legend without color circles
+const CustomLegend = ({ payload }: any) => {
   return (
-    <div className="grid grid-cols-1 gap-2 mt-4 w-full max-w-md">
-      {data.map((item) => {
-        const original = originalData.find((d) => d.metric === item.metric);
-        const percent = original && total ? ((original.value / total) * 100).toFixed(1) : "0";
-
-        return (
-          <div
-            key={item.metric}
-            className="flex items-center justify-between border p-2 rounded shadow-sm"
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: item.fill }} />
-              <span className="font-medium text-sm">{item.metric}</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {original?.value} ({percent}%)
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <ul className="flex flex-col items-start text-sm space-y-1 mt-4">
+      {payload?.map((entry: any, index: number) => (
+        <li key={`item-${index}`} className="flex gap-2">
+          <span className="text-sm">{entry.value}</span>
+        </li>
+      ))}
+    </ul>
   );
 };
 
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
-  const originalTotal = useMemo(() => data.reduce((acc, item) => acc + item.value, 0), [data]);
+  const originalTotal = useMemo(
+    () => data.reduce((acc, item) => acc + item.value, 0),
+    [data]
+  );
   const normalizedData = useMemo(() => normalizeData(data), [data]);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -197,13 +179,8 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                     />
                   )}
                 />
+                <Legend content={<CustomLegend />} />
               </PieChart>
-
-              <CustomLegend
-                data={normalizedData}
-                originalData={data}
-                total={originalTotal}
-              />
             </div>
           </ChartContainer>
         </CardContent>
