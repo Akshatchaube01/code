@@ -30,28 +30,24 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// Function to calculate percentages that sum exactly to 100
+// FIXED: Calculate percentages summing exactly to 100
 function getRoundedPercentages(data: DataType[]): number[] {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   if (total === 0) return data.map(() => 0);
 
-  // Calculate raw percentages
   const rawPercentages = data.map((item) => (item.value / total) * 100);
+  const floored = rawPercentages.map((p) => Math.floor(p));
+  let sumFloored = floored.reduce((a, b) => a + b, 0);
+  let remainder = 100 - sumFloored;
 
-  // Floor all percentages
-  let floored = rawPercentages.map((p) => Math.floor(p));
-
-  // Calculate how much is missing due to flooring
-  let missing = 100 - floored.reduce((a, b) => a + b, 0);
-
-  // Distribute the missing by adding 1 to the largest decimals
-  // Create array of decimals with their indexes
+  // Sort indexes by decimal remainder descending
   const decimalsWithIndex = rawPercentages
-    .map((p, i) => ({ dec: p - Math.floor(p), i }))
-    .sort((a, b) => b.dec - a.dec);
+    .map((p, i) => ({ decimal: p - Math.floor(p), index: i }))
+    .sort((a, b) => b.decimal - a.decimal);
 
-  for (let j = 0; j < missing; j++) {
-    floored[decimalsWithIndex[j].i]++;
+  // Add +1 to top 'remainder' slices with highest decimals
+  for (let i = 0; i < remainder; i++) {
+    floored[decimalsWithIndex[i].index]++;
   }
 
   return floored;
