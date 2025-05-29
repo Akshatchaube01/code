@@ -7,8 +7,8 @@ import {
   Legend,
   Label,
   PieLabelRenderProps,
-  Tooltip,
   TooltipProps,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/frame/ui/card";
@@ -62,8 +62,7 @@ function normalizeData(data: DataType[]): DataType[] {
   }));
 }
 
-// Extend TooltipProps with your additional props
-type CustomTooltipProps = TooltipProps & {
+type CustomTooltipProps = TooltipProps<number, string> & {
   originalData: DataType[];
   total: number;
 };
@@ -136,10 +135,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   return (
     <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
       <div className="flex justify-end mb-2">
-        <Button
-          onClick={() => setIsFullScreen(!isFullScreen)}
-          variant="outline"
-        >
+        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
           {isFullScreen ? "Exit Full Screen" : "Full Screen"}
         </Button>
       </div>
@@ -161,10 +157,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                 >
                   <Label
                     content={({ viewBox }) => {
-                      const v = viewBox as { cx?: number; cy?: number } | undefined;
-                      const cx = typeof v?.cx === "number" ? v.cx : 0;
-                      const cy = typeof v?.cy === "number" ? v.cy : 0;
-
+                      const { cx = 0, cy = 0 } = viewBox ?? {};
                       return (
                         <text
                           x={cx}
@@ -189,13 +182,9 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   />
                 </Pie>
                 <Legend layout="horizontal" align="center" verticalAlign="bottom" />
-                <Tooltip
+                <RechartsTooltip
                   content={(props) => (
-                    <CustomTooltip
-                      {...props}
-                      originalData={data}
-                      total={originalTotal}
-                    />
+                    <CustomTooltip {...props} originalData={data} total={originalTotal} />
                   )}
                 />
               </PieChart>
