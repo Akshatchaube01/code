@@ -24,6 +24,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [shownCountries, setShownCountries] = useState<string[]>([]);
 
+  // Extract all unique countries from all details
   const allCountries = Array.from(
     new Set(data.flatMap((team) => team.details?.map((child) => child.column2) || []))
   );
@@ -46,14 +47,20 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     setShownCountries(allCountries);
   };
 
-  // Filter data to only teams with visible children countries
+  // Filter data: Keep teams if any of their children or they themselves have visible countries
   const filteredData = data.filter((team) => {
+    // Check if team's own country is visible (if applicable)
+    const teamCountryVisible = shownCountries.includes(team.column2);
+
+    // Check if any children are visible
     const children = team.details || [];
     const visibleChildren = children.filter((child) => shownCountries.includes(child.column2));
-    return visibleChildren.length > 0;
+
+    // Show team if team country visible OR any visible children
+    return teamCountryVisible || visibleChildren.length > 0;
   });
 
-  // Recursive renderRow, unchanged, but fixed keys and minor typos
+  // Render a row (recursive for children)
   const renderRow = (
     row: RowData,
     level: number,
@@ -101,17 +108,16 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...childrenRows];
   };
 
-  // Calculate totals for visible rows recursively
+  // Calculate totals for visible rows only (including expanded children)
   const calculateTotals = () => {
     const totalsColumn3 = new Array(data[0]?.column3.length || 0).fill(0);
     let totalColumn4 = 0;
 
-    // Recursive helper
     const accumulate = (rows: RowData[], level: number, prefix: string) => {
       rows.forEach((row, i) => {
         const rowKey = `${prefix}-${row.column1}-${row.column2}-${level}`;
 
-        // Only count if the country is shown
+        // Only sum if country is visible
         if (!shownCountries.includes(row.column2)) return;
 
         row.column3.forEach((val, idx) => {
@@ -119,7 +125,6 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         });
         totalColumn4 += row.column4;
 
-        // If expanded, recurse into children
         if (row.details && expandedRows[rowKey]) {
           accumulate(row.details, level + 1, rowKey);
         }
@@ -205,10 +210,10 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         )
       ),
 
-      // Render filtered data rows with children
+      // Render all visible rows (including expanded children)
       ...filteredData.flatMap((team, idx) => renderRow(team, 0, `team-${idx}`, true)),
 
-      // Render total row after all rows
+      // Add totals row at bottom
       React.createElement(
         'tbody',
         { key: 'total-row' },
