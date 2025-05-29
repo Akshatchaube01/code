@@ -31,7 +31,6 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// Adjust data to make the percentage sum exactly 100
 function normalizeData(data: DataType[]): DataType[] {
   const total = data.reduce((acc, item) => acc + item.value, 0);
   if (total === 0) return data;
@@ -49,7 +48,6 @@ function normalizeData(data: DataType[]): DataType[] {
   let flooredSum = floored.reduce((acc, item) => acc + item.percent, 0);
   const remaining = 100 - flooredSum;
 
-  // Find the slice with the largest original value to give the remainder
   const maxIndex = rawPercentages.reduce(
     (maxIdx, item, idx, arr) =>
       item.value > arr[maxIdx].value ? idx : maxIdx,
@@ -58,14 +56,14 @@ function normalizeData(data: DataType[]): DataType[] {
   floored[maxIndex].percent += remaining;
 
   return floored.map((item) => ({
-    ...item,
-    value: item.percent, // now percent becomes the value
+    metric: item.metric,
+    value: item.percent,
+    fill: item.fill,
   }));
 }
 
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   const normalizedData = useMemo(() => normalizeData(data), [data]);
-
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const renderPercentageLabel = ({
@@ -95,6 +93,13 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
     );
   };
 
+  const pieSize = {
+    width: isFullScreen ? 800 : 350,
+    height: isFullScreen ? 800 : 450,
+    outerRadius: isFullScreen ? 200 : 120,
+    innerRadius: isFullScreen ? 100 : 60,
+  };
+
   return (
     <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
       <div className="flex justify-end mb-2">
@@ -110,13 +115,14 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
         <CardContent className="flex flex-col items-center max-h-[850px]">
           <ChartContainer config={config}>
             <div className="flex flex-col items-center max-h-[850px]">
-              <PieChart width={isFullScreen ? 800 : 350} height={isFullScreen ? 800 : 450}>
+              <PieChart width={pieSize.width} height={pieSize.height}>
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Pie
                   data={normalizedData}
                   dataKey="value"
                   nameKey="metric"
-                  outerRadius={isFullScreen ? 320 : 160}
+                  outerRadius={pieSize.outerRadius}
+                  innerRadius={pieSize.innerRadius}
                   strokeWidth={5}
                   labelLine={false}
                   label={renderPercentageLabel}
@@ -124,14 +130,22 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   <Label
                     content={({ viewBox }) => {
                       const { cx = 0, cy = 0 } = viewBox ?? {};
-                      const total = 100;
                       return (
-                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+                        <text
+                          x={cx}
+                          y={cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
                           <tspan className="fill-foreground text-3xl font-bold">
-                            {total}
+                            100
                           </tspan>
-                          <tspan x={cx} y={cy + 24} className="fill-muted-foreground text-sm">
-                            value
+                          <tspan
+                            x={cx}
+                            y={cy + 24}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            percent
                           </tspan>
                         </text>
                       );
