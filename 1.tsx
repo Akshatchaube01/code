@@ -30,27 +30,18 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// Floors percentages, then adds leftover to largest slice only
-function getRoundedPercentagesAddLeftoverToLargest(data: DataType[]): number[] {
+// ✅ Ensures percentages are integers summing exactly to 100
+function getRoundedPercentages(data: DataType[]): number[] {
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  if (total === 0) return data.map(() => 0);
+  const raw = data.map((item) => (item.value / total) * 100);
 
-  const rawPercentages = data.map((item) => (item.value / total) * 100);
-  const floored = rawPercentages.map((p) => Math.floor(p));
-  const sumFloored = floored.reduce((a, b) => a + b, 0);
-  const leftover = 100 - sumFloored;
+  const floored = raw.map((p) => Math.floor(p));
+  let sum = floored.reduce((a, b) => a + b, 0);
 
-  if (leftover > 0) {
-    // Find index of slice with largest raw percentage
-    let maxIndex = 0;
-    let maxValue = rawPercentages[0];
-    for (let i = 1; i < rawPercentages.length; i++) {
-      if (rawPercentages[i] > maxValue) {
-        maxValue = rawPercentages[i];
-        maxIndex = i;
-      }
-    }
-    floored[maxIndex] += leftover;
+  // Add +1 to a random index if sum < 100
+  if (sum < 100) {
+    const randomIndex = Math.floor(Math.random() * floored.length);
+    floored[randomIndex] += 1;
   }
 
   return floored;
@@ -63,8 +54,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
     return data.reduce((acc, curr) => acc + Number(curr.value), 0);
   }, [data]);
 
-  // Use our fixed rounding function here
-  const roundedPercentages = useMemo(() => getRoundedPercentagesAddLeftoverToLargest(data), [data]);
+  const roundedPercentages = useMemo(() => getRoundedPercentages(data), [data]);
 
   const renderPercentageLabel = ({
     cx,
