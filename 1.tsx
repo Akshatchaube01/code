@@ -2,19 +2,17 @@
 
 import React, { FC, useMemo, useState } from "react";
 import {
-  Pie,
-  PieChart,
-  Tooltip as RechartsTooltip,
-  Legend,
-  PieLabelRenderProps,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Brush,
 } from "recharts";
-
 import { Card, CardContent } from "@/components/frame/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-} from "@/components/frame/ui/chart";
-
+import { ChartConfig, ChartContainer } from "@/components/frame/ui/chart";
 import { Button } from "@/components/frame/ui/button";
 
 type DataType = {
@@ -23,170 +21,126 @@ type DataType = {
   fill: string;
 };
 
-type DynamicPieChartProps = {
+type NormalizedDataType = DataType & {
+  percent: number;
+};
+
+type DynamicBarChartProps = {
   data: DataType[];
   config: ChartConfig;
 };
 
-// Normalize values to sum to 100
-function normalizeData(data: DataType[]): DataType[] {
-  const total = data.reduce((acc, item) => acc + item.value, 0);
-  if (total === 0) return data;
+const DynamicBarChart: FC<DynamicBarChartProps> = ({ data, config }) => {
+  const [isFullscreen, setIsFullScreen] = useState(false);
 
-  const rawPercentages = data.map((item) => ({
-    ...item,
-    rawPercent: (item.value / total) * 100,
-  }));
-
-  const floored = rawPercentages.map((item) => ({
-    ...item,
-    percent: Math.floor(item.rawPercent),
-  }));
-
-  let flooredSum = floored.reduce((acc, item) => acc + item.percent, 0);
-  const remaining = 100 - flooredSum;
-
-  const maxIndex = rawPercentages.reduce(
-    (maxIdx, item, idx, arr) =>
-      item.value > arr[maxIdx].value ? idx : maxIdx,
-    0
-  );
-  floored[maxIndex].percent += remaining;
-
-  return floored.map((item) => ({
-    metric: item.metric,
-    value: item.percent,
-    fill: item.fill,
-  }));
-}
-
-// Custom Tooltip
-const CustomTooltip = ({
-  active,
-  payload,
-  originalData,
-  total,
-}: {
-  active?: boolean;
-  payload?: any[];
-  originalData: DataType[];
-  total: number;
-}) => {
-  if (!active || !payload?.length) return null;
-
-  const { name } = payload[0];
-  const actual = originalData.find((d) => d.metric === name);
-  if (!actual) return null;
-
-  const percent = ((actual.value / total) * 100).toFixed(1);
-
-  return (
-    <div className="bg-white border p-2 rounded shadow text-sm">
-      <div className="font-semibold">{actual.metric}</div>
-      <div>Value: {actual.value}</div>
-      <div>Percentage: {percent}%</div>
-    </div>
-  );
-};
-
-// Custom Legend without color circles
-const CustomLegend = ({ payload }: any) => {
-  return (
-    <ul className="flex flex-col items-start text-sm space-y-1 mt-4">
-      {payload?.map((entry: any, index: number) => (
-        <li key={`item-${index}`} className="flex gap-2">
-          <span className="text-sm">{entry.value}</span>
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
-  const originalTotal = useMemo(
-    () => data.reduce((acc, item) => acc + item.value, 0),
+  const totalValue = useMemo(
+    () => data.reduce((acc, d) => acc + d.value, 0),
     [data]
   );
-  const normalizedData = useMemo(() => normalizeData(data), [data]);
-  const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const renderPercentageLabel = ({
-    cx = 0,
-    cy = 0,
-    midAngle = 0,
-    innerRadius = 0,
-    outerRadius = 0,
-    percent = 0,
-  }: PieLabelRenderProps) => {
-    const RADIAN = Math.PI / 180;
-    const radius = (innerRadius + outerRadius) / 2;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const normalizedData: NormalizedDataType[] = useMemo(() => {
+    return data.map((d) => ({
+      ...d,
+      percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
+    }));
+  }, [data, totalValue]);
 
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#333"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {`${Math.round(percent * 100)}%`}
-      </text>
-    );
-  };
+  const chartWidth = 800;
+  const chartHeight = 500;
 
-  const pieSize = {
-    width: isFullScreen ? 800 : 350,
-    height: isFullScreen ? 800 : 450,
-    outerRadius: isFullScreen ? 200 : 120,
-    innerRadius: isFullScreen ? 100 : 60,
-  };
+  const maxLabelLength = useMemo(() => {
+    return data.reduce((max, d) => {
+      const rawLabel =
+        config[d.metric as keyof typeof config]?.label || d.metric;
+      const label = String(rawLabel);
+      return Math.max(max, label.length);
+    }, 0);
+  }, [data, config]);
+
+  const axisHeight = Math.min(20 + maxLabelLength * 7, 340);
+  const labelFontSize = maxLabelLength > 10 ? 10 : 12;
+
+  const renderChart = (width: number | string, height: number | string) => (
+    <ResponsiveContainer width={width} height={height}>
+      <BarChart data={normalizedData} margin={{ left: 0 }} layout="horizontal">
+        <CartesianGrid stroke="#bbb" strokeDasharray="5 5" vertical={false} />
+        <XAxis
+          dataKey="metric"
+          tickFormatter={(value) =>
+            config[value as keyof typeof config]?.label || value
+          }
+          tickLine
+          angle={-90}
+          axisLine
+          tickMargin={10}
+          textAnchor="end"
+          height={axisHeight}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickFormatter={(value) => `${value.toFixed(0)}%`}
+          tick={{ fontSize: 12, fontWeight: 600 }}
+          type="number"
+        />
+        <Brush dataKey="metric" height={30} stroke="#8884d8" />
+        <Tooltip
+          cursor={{ fill: "rgba(0,0,0,0.1)" }}
+          formatter={(value: number) => [`${value.toFixed(2)}`, "Value"]}
+          contentStyle={{ fontSize: 14, fontWeight: 600 }}
+        />
+        <Bar
+          dataKey="percent"
+          fill="#8884d8"
+          radius={[5, 5, 0, 0]}
+          isAnimationActive={false}
+          label={{
+            position: "top",
+            angle: -90,
+            formatter: (value: number) => `${value.toFixed(2)}%`,
+            fontSize: labelFontSize,
+            fontWeight: 500,
+            fill: "#333",
+          }}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 
   return (
-    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
-      <div className="flex justify-end mb-2">
-        <Button
-          onClick={() => setIsFullScreen(!isFullScreen)}
-          variant="outline"
-        >
-          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
-        </Button>
-      </div>
-
-      <Card>
-        <CardContent className="flex flex-col items-center max-h-[850px]">
-          <ChartContainer config={config}>
-            <div className="flex flex-col items-center max-h-[850px]">
-              <PieChart width={pieSize.width} height={pieSize.height}>
-                <Pie
-                  data={normalizedData}
-                  dataKey="value"
-                  nameKey="metric"
-                  outerRadius={pieSize.outerRadius}
-                  innerRadius={pieSize.innerRadius}
-                  strokeWidth={5}
-                  labelLine={false}
-                  label={renderPercentageLabel}
-                />
-                <RechartsTooltip
-                  content={(props) => (
-                    <CustomTooltip
-                      {...props}
-                      originalData={data}
-                      total={originalTotal}
-                    />
-                  )}
-                />
-                <Legend content={<CustomLegend />} />
-              </PieChart>
-            </div>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      {isFullscreen ? (
+        <div className="fixed inset-0 bg-white z-50 p-6 overflow-auto flex flex-col">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setIsFullScreen(false)} variant="outline">
+              Exit Full Screen
+            </Button>
+          </div>
+          <Card className="flex-grow">
+            <CardContent className="flex flex-col items-center max-h-[100vh]">
+              <ChartContainer config={config}>
+                <div className="w-full h-[88vh]">{renderChart("100%", "100%")}</div>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-end mb-2">
+            <Button onClick={() => setIsFullScreen(true)} variant="outline">
+              Full Screen
+            </Button>
+          </div>
+          <Card className="items-center">
+            <CardContent>
+              <ChartContainer config={config}>
+                {renderChart(chartWidth, chartHeight)}
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </>
   );
 };
 
-export default DynamicPieChart;
+export default DynamicBarChart;
