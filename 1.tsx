@@ -25,7 +25,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   const [shownCountries, setShownCountries] = useState<string[]>([]);
 
   const allCountries = Array.from(
-    new Set(data.flatMap(team => team.details?.map(child => child.column2) || []))
+    new Set(data.flatMap((team) => team.details?.map((child) => child.column2) || []))
   );
 
   useEffect(() => {
@@ -33,14 +33,12 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   }, [data]);
 
   const toggleRow = (key: string) => {
-    setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const toggleCountry = (country: string) => {
-    setShownCountries(prev =>
-      prev.includes(country)
-        ? prev.filter(c => c !== country)
-        : [...prev, country]
+    setShownCountries((prev) =>
+      prev.includes(country) ? prev.filter((c) => c !== country) : [...prev, country]
     );
   };
 
@@ -48,231 +46,138 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     setShownCountries(allCountries);
   };
 
-  const totals = {
-    column3: [] as number[],
-    column4: 0
-  };
-
   const renderRow = (
     row: RowData,
     level: number,
     keyPrefix: string,
     isVisible: boolean
-  ): any[] => {
+  ): JSX.Element[] => {
     if (!isVisible) return [];
 
     const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
     const isParent = level === 0;
     const isExpandable = isParent && row.details && row.details.length > 0;
 
-    const cells = [];
+    const cells = [
+      <td key="col1" className="px-4 py-2 font-medium">{row.column1}</td>,
+      <td key="col2" className="px-4 py-2">{row.column2}</td>,
+      ...row.column3.map((value, idx) => (
+        <td key={`col3-${idx}`} className="px-4 py-2">{value}</td>
+      )),
+      <td key="col4" className="px-4 py-2">{row.column4}</td>,
+    ];
 
-    cells.push(
-      React.createElement(
-        'td',
-        { key: 'col1', className: 'px-4 py-2 font-medium' },
-        row.column1
-      )
+    const mainRow = (
+      <tr
+        key={rowKey}
+        className="border-t border-red-300 bg-white"
+        onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
+        style={isExpandable ? { cursor: 'pointer' } : {}}
+      >
+        {cells}
+      </tr>
     );
 
-    cells.push(
-      React.createElement(
-        'td',
-        { key: 'col2', className: 'px-4 py-2' },
-        row.column2
-      )
-    );
-
-    row.column3.forEach((value, idx) => {
-      if (isParent) return;
-      if (!totals.column3[idx]) totals.column3[idx] = 0;
-      totals.column3[idx] += value;
-
-      cells.push(
-        React.createElement(
-          'td',
-          { key: `col3-${idx}`, className: 'px-4 py-2' },
-          value
-        )
-      );
-    });
-
-    if (!isParent) {
-      totals.column4 += row.column4;
-    }
-
-    cells.push(
-      React.createElement(
-        'td',
-        { key: 'col4', className: 'px-4 py-2' },
-        row.column4
-      )
-    );
-
-    const rowElement = React.createElement(
-      'tr',
-      {
-        key: rowKey,
-        className: 'border-t border-red-300 bg-white',
-        onClick: isExpandable ? () => toggleRow(rowKey) : undefined,
-        style: isExpandable ? { cursor: 'pointer' } : {}
-      },
-      cells
-    );
-
-    const children: any[] = [];
+    const children: JSX.Element[] = [];
 
     if (isExpandable && expandedRows[rowKey]) {
-      row.details!.forEach((child, i) => {
+      row.details.forEach((child, i) => {
         const visible = shownCountries.includes(child.column2);
         children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, visible));
       });
     }
 
-    return [rowElement, ...children];
+    return [mainRow, ...children];
   };
 
-  const filteredData = data.filter(team => {
+  const filteredData = data.filter((team) => {
     const children = team.details || [];
-    const visibleChildren = children.filter(child =>
-      shownCountries.includes(child.column2)
-    );
+    const visibleChildren = children.filter((child) => shownCountries.includes(child.column2));
     return visibleChildren.length > 0;
   });
 
-  const headerRows = [];
+  const allVisibleRows: RowData[] = [];
 
-  // First header row
-  headerRows.push(
-    React.createElement(
-      'tr',
-      { key: 'header-row-1' },
-      columns.map((col, i) =>
-        React.createElement(
-          'th',
-          {
-            key: `col-${i}`,
-            className: 'px-4 py-3 text-left',
-            colSpan: col.colspan,
-            rowSpan: col.rowspan
-          },
-          col.name
-        )
-      )
-    )
-  );
+  filteredData.forEach((team) => {
+    (team.details || []).forEach((child) => {
+      if (shownCountries.includes(child.column2)) {
+        allVisibleRows.push(child);
+      }
+    });
+  });
 
-  // Second header row (sub-columns)
-  const hasSubHeaders = columns.some(col => col.sub_columns && col.sub_columns.length > 0);
-  if (hasSubHeaders) {
-    headerRows.push(
-      React.createElement(
-        'tr',
-        { key: 'header-row-2' },
-        columns.flatMap(col =>
-          (col.sub_columns || []).map((subCol, j) =>
-            React.createElement(
-              'th',
-              {
-                key: `subcol-${col.name}-${j}`,
-                className: 'px-4 py-3 text-left'
-              },
-              subCol
-            )
-          )
-        )
-      )
-    );
-  }
+  const totalColumn3 = allVisibleRows.reduce((acc, row) => {
+    return acc.map((sum, idx) => sum + (row.column3[idx] || 0));
+  }, new Array(data[0]?.column3.length || 0).fill(0));
 
-  const renderedRows = filteredData.flatMap((team, idx) =>
-    renderRow(team, 0, `team-${idx}`, true)
-  );
+  const totalColumn4 = allVisibleRows.reduce((sum, row) => sum + row.column4, 0);
 
-  // Totals Row
-  const totalRow = React.createElement(
-    'tr',
-    {
-      key: 'total-row',
-      className: 'bg-red-100 font-semibold border-t border-red-600'
-    },
-    [
-      React.createElement(
-        'td',
-        { key: 'total-label-1', className: 'px-4 py-2', colSpan: 2 },
-        'Total'
-      ),
-      ...totals.column3.map((sum, i) =>
-        React.createElement(
-          'td',
-          { key: `total-col3-${i}`, className: 'px-4 py-2' },
-          sum
-        )
-      ),
-      React.createElement(
-        'td',
-        { key: 'total-col4', className: 'px-4 py-2' },
-        totals.column4
-      )
-    ]
-  );
+  return (
+    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
+      <div className="mb-4">
+        <p className="font-semibold mb-2">Select Countries to Display:</p>
+        <div className="flex flex-wrap gap-4">
+          {allCountries.map((country) => (
+            <label key={country} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={country}
+                checked={shownCountries.includes(country)}
+                onChange={() => toggleCountry(country)}
+              />
+              <span>{country}</span>
+            </label>
+          ))}
+        </div>
+        <button
+          className="mt-3 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+          onClick={clearFilters}
+        >
+          Clear Filters
+        </button>
+      </div>
 
-  return React.createElement(
-    'div',
-    { className: 'overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4' },
-    [
-      React.createElement(
-        'div',
-        { key: 'filter-section', className: 'mb-4' },
-        [
-          React.createElement(
-            'p',
-            { key: 'filter-label', className: 'font-semibold mb-2' },
-            'Select Countries to Display:'
-          ),
-          React.createElement(
-            'div',
-            { key: 'checkbox-container', className: 'flex flex-wrap gap-4' },
-            allCountries.map(country =>
-              React.createElement(
-                'label',
-                {
-                  key: country,
-                  className: 'flex items-center space-x-2'
-                },
-                [
-                  React.createElement('input', {
-                    key: `${country}-input`,
-                    type: 'checkbox',
-                    value: country,
-                    checked: shownCountries.includes(country),
-                    onChange: () => toggleCountry(country)
-                  }),
-                  React.createElement('span', { key: `${country}-label` }, country)
-                ]
-              )
-            )
-          ),
-          React.createElement(
-            'button',
-            {
-              key: 'clear-filters',
-              onClick: clearFilters,
-              className: 'mt-3 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700'
-            },
-            'Clear Filters'
-          )
-        ]
-      ),
-      React.createElement(
-        'table',
-        { key: 'main-table', className: 'min-w-full table-auto' },
-        [
-          React.createElement('thead', { key: 'thead', className: 'bg-red-600 text-white' }, headerRows),
-          React.createElement('tbody', { key: 'tbody' }, [...renderedRows, totalRow])
-        ]
-      )
-    ]
+      <table className="min-w-full table-auto">
+        <thead className="bg-red-600 text-white">
+          <tr>
+            {columns.map((col, i) => (
+              <th
+                key={`col-${i}`}
+                className="px-4 py-3 text-left"
+                colSpan={col.colspan}
+                rowSpan={col.rowspan}
+              >
+                {col.name}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {columns
+              .filter((col) => col.sub_columns && col.sub_columns.length > 0)
+              .flatMap((col) =>
+                col.sub_columns!.map((subCol, j) => (
+                  <th key={`subcol-${col.name}-${j}`} className="px-4 py-3 text-left">
+                    {subCol}
+                  </th>
+                ))
+              )}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredData.flatMap((team, idx) => renderRow(team, 0, `team-${idx}`, true))}
+          <tr className="font-bold bg-red-100 border-t border-red-400">
+            <td className="px-4 py-2">Total</td>
+            <td className="px-4 py-2">-</td>
+            {totalColumn3.map((value, idx) => (
+              <td key={`total-col3-${idx}`} className="px-4 py-2">
+                {value}
+              </td>
+            ))}
+            <td className="px-4 py-2">{totalColumn4}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 };
 
