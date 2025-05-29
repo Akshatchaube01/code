@@ -83,34 +83,36 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  // Total calculations
-  let totalColumn3 = 0;
-  let totalColumn4 = 0;
+  // Totals of parent rows only (columns 4–8)
+  let sumCol4 = 0;
+  let sumCol5 = 0;
+  let sumCol6 = 0;
+  let sumCol7 = 0;
+  let sumCol8 = 0;
 
-  const accumulateTotals = (rows: RowData[]) => {
-    rows.forEach((row) => {
-      const val3 = parseFloat(row.column3);
-      const val4 = parseFloat(row.column4);
-      totalColumn3 += !isNaN(val3) ? val3 : 0;
-      totalColumn4 += !isNaN(val4) ? val4 : 0;
+  data.forEach((row) => {
+    const n4 = parseFloat(row.column4);
+    const n5 = parseFloat(row.columns);
+    const n6 = parseFloat(row.column6);
+    const n7 = parseFloat(row.column7);
+    const n8 = parseFloat(row.column ?? '0');
 
-      if (row.details1) accumulateTotals(row.details1);
-      if (row.details2) accumulateTotals(row.details2);
-    });
-  };
-
-  accumulateTotals(data);
+    if (!isNaN(n4)) sumCol4 += n4;
+    if (!isNaN(n5)) sumCol5 += n5;
+    if (!isNaN(n6)) sumCol6 += n6;
+    if (!isNaN(n7)) sumCol7 += n7;
+    if (!isNaN(n8)) sumCol8 += n8;
+  });
 
   const totalRow = createElement(
     'tr',
-    { key: 'total-row', className: 'bg-red-100 font-bold' },
-    createElement('td', { className: 'px-4 py-2', colSpan: 2 }, 'Totals'),
-    createElement('td', { className: 'px-4 py-2' }, totalColumn3.toFixed(2)),
-    createElement('td', { className: 'px-4 py-2' }, totalColumn4.toFixed(2)),
-    createElement('td', { className: 'px-4 py-2' }),
-    createElement('td', { className: 'px-4 py-2' }),
-    createElement('td', { className: 'px-4 py-2' }),
-    createElement('td', { className: 'px-4 py-2' })
+    { key: 'total-row', className: 'bg-red-100 font-bold border-t border-red-400' },
+    createElement('td', { className: 'px-4 py-2', colSpan: 3 }, 'Parent Totals'),
+    createElement('td', { className: 'px-4 py-2' }, sumCol4.toFixed(2)),
+    createElement('td', { className: 'px-4 py-2' }, sumCol5.toFixed(2)),
+    createElement('td', { className: 'px-4 py-2' }, sumCol6.toFixed(2)),
+    createElement('td', { className: 'px-4 py-2' }, sumCol7.toFixed(2)),
+    createElement('td', { className: 'px-4 py-2' }, sumCol8.toFixed(2))
   );
 
   return createElement(
