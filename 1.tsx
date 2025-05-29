@@ -38,7 +38,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
           onClick: level === 0 ? () => toggleRow(rowKey) : undefined,
           style: level === 0 ? { cursor: 'pointer' } : undefined,
         },
-        row.columna ?? '(no label)'
+        row.columna ?? ''
       ),
       createElement(
         'td',
@@ -83,7 +83,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  // Sum only parent rows (columns 4–8)
+  // Totals for parent rows only (columns 4–8)
   let sumCol4 = 0;
   let sumCol5 = 0;
   let sumCol6 = 0;
@@ -104,10 +104,13 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     if (!isNaN(n8)) sumCol8 += n8;
   });
 
+  // Final row with numeric totals (no label)
   const totalRow = createElement(
     'tr',
     { key: 'total-row', className: 'bg-red-100 font-bold border-t border-red-400' },
-    createElement('td', { className: 'px-4 py-2', colSpan: 3 }, 'Parent Totals'),
+    createElement('td', { className: 'px-4 py-2' }, ''),
+    createElement('td', { className: 'px-4 py-2' }, ''),
+    createElement('td', { className: 'px-4 py-2' }, ''),
     createElement('td', { className: 'px-4 py-2' }, sumCol4.toFixed(2)),
     createElement('td', { className: 'px-4 py-2' }, sumCol5.toFixed(2)),
     createElement('td', { className: 'px-4 py-2' }, sumCol6.toFixed(2)),
