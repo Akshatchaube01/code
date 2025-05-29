@@ -7,15 +7,13 @@ import {
   Legend,
   Label,
   PieLabelRenderProps,
-  Tooltip as RechartsTooltip,
+  TooltipProps,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/frame/ui/card";
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/frame/ui/chart";
 
 import { Button } from "@/components/frame/ui/button";
@@ -31,6 +29,7 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
+// Normalize percentages (sum = 100)
 function normalizeData(data: DataType[]): DataType[] {
   const total = data.reduce((acc, item) => acc + item.value, 0);
   if (total === 0) return data;
@@ -62,7 +61,32 @@ function normalizeData(data: DataType[]): DataType[] {
   }));
 }
 
+// Tooltip component using original data
+const CustomTooltip = ({
+  active,
+  payload,
+  originalData,
+  total,
+}: TooltipProps & { originalData: DataType[]; total: number }) => {
+  if (!active || !payload?.length) return null;
+
+  const { name, payload: pieData } = payload[0];
+  const actual = originalData.find((d) => d.metric === name);
+  if (!actual || !total) return null;
+
+  const percent = ((actual.value / total) * 100).toFixed(1);
+
+  return (
+    <div className="bg-white shadow p-2 rounded text-sm border">
+      <div className="font-medium">{actual.metric}</div>
+      <div>Value: {actual.value}</div>
+      <div>Percentage: {percent}%</div>
+    </div>
+  );
+};
+
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
+  const originalTotal = useMemo(() => data.reduce((acc, item) => acc + item.value, 0), [data]);
   const normalizedData = useMemo(() => normalizeData(data), [data]);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -116,7 +140,6 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
           <ChartContainer config={config}>
             <div className="flex flex-col items-center max-h-[850px]">
               <PieChart width={pieSize.width} height={pieSize.height}>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Pie
                   data={normalizedData}
                   dataKey="value"
@@ -154,6 +177,15 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   />
                 </Pie>
                 <Legend layout="horizontal" align="center" verticalAlign="bottom" />
+                <RechartsTooltip
+                  content={(props) => (
+                    <CustomTooltip
+                      {...props}
+                      originalData={data}
+                      total={originalTotal}
+                    />
+                  )}
+                />
               </PieChart>
             </div>
           </ChartContainer>
