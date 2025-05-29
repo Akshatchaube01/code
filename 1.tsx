@@ -4,10 +4,8 @@ import React, { FC, useMemo, useState } from "react";
 import {
   Pie,
   PieChart,
-  Legend,
-  Label,
+  Tooltip as RechartsTooltip,
   PieLabelRenderProps,
-  TooltipProps,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/frame/ui/card";
@@ -29,7 +27,7 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// Normalize percentages (sum = 100)
+// Normalize values to sum to 100
 function normalizeData(data: DataType[]): DataType[] {
   const total = data.reduce((acc, item) => acc + item.value, 0);
   if (total === 0) return data;
@@ -61,26 +59,66 @@ function normalizeData(data: DataType[]): DataType[] {
   }));
 }
 
-// Tooltip component using original data
+// Custom Tooltip
 const CustomTooltip = ({
   active,
   payload,
   originalData,
   total,
-}: TooltipProps & { originalData: DataType[]; total: number }) => {
+}: {
+  active?: boolean;
+  payload?: any[];
+  originalData: DataType[];
+  total: number;
+}) => {
   if (!active || !payload?.length) return null;
 
-  const { name, payload: pieData } = payload[0];
+  const { name } = payload[0];
   const actual = originalData.find((d) => d.metric === name);
-  if (!actual || !total) return null;
+  if (!actual) return null;
 
   const percent = ((actual.value / total) * 100).toFixed(1);
 
   return (
-    <div className="bg-white shadow p-2 rounded text-sm border">
-      <div className="font-medium">{actual.metric}</div>
+    <div className="bg-white border p-2 rounded shadow text-sm">
+      <div className="font-semibold">{actual.metric}</div>
       <div>Value: {actual.value}</div>
       <div>Percentage: {percent}%</div>
+    </div>
+  );
+};
+
+// Custom Legend
+const CustomLegend = ({
+  data,
+  originalData,
+  total,
+}: {
+  data: DataType[];
+  originalData: DataType[];
+  total: number;
+}) => {
+  return (
+    <div className="grid grid-cols-1 gap-2 mt-4 w-full max-w-md">
+      {data.map((item) => {
+        const original = originalData.find((d) => d.metric === item.metric);
+        const percent = original && total ? ((original.value / total) * 100).toFixed(1) : "0";
+
+        return (
+          <div
+            key={item.metric}
+            className="flex items-center justify-between border p-2 rounded shadow-sm"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: item.fill }} />
+              <span className="font-medium text-sm">{item.metric}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {original?.value} ({percent}%)
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -149,34 +187,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   strokeWidth={5}
                   labelLine={false}
                   label={renderPercentageLabel}
-                >
-                  <Label
-                    content={({ viewBox }) => {
-                      const { cx = 0, cy = 0 } = viewBox ?? {};
-                      return (
-                        <text
-                          x={cx}
-                          y={cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan className="fill-foreground text-3xl font-bold">
-                            100
-                          </tspan>
-                          <tspan
-                            x={cx}
-                            y={cy + 24}
-                            className="fill-muted-foreground text-sm"
-                          >
-                            percent
-                          </tspan>
-                        </text>
-                      );
-                    }}
-                    wrapperStyle={{ width: "100%", textAlign: "center" }}
-                  />
-                </Pie>
-                <Legend layout="horizontal" align="center" verticalAlign="bottom" />
+                />
                 <RechartsTooltip
                   content={(props) => (
                     <CustomTooltip
@@ -187,6 +198,12 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
                   )}
                 />
               </PieChart>
+
+              <CustomLegend
+                data={normalizedData}
+                originalData={data}
+                total={originalTotal}
+              />
             </div>
           </ChartContainer>
         </CardContent>
