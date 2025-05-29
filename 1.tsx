@@ -53,7 +53,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return visibleChildren.length > 0;
   });
 
-  // Recursive function to render rows (no JSX)
+  // Recursive renderRow, unchanged, but fixed keys and minor typos
   const renderRow = (
     row: RowData,
     level: number,
@@ -101,14 +101,17 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...childrenRows];
   };
 
-  // Calculate totals only for visible rows (including expanded children)
+  // Calculate totals for visible rows recursively
   const calculateTotals = () => {
     const totalsColumn3 = new Array(data[0]?.column3.length || 0).fill(0);
     let totalColumn4 = 0;
 
+    // Recursive helper
     const accumulate = (rows: RowData[], level: number, prefix: string) => {
       rows.forEach((row, i) => {
         const rowKey = `${prefix}-${row.column1}-${row.column2}-${level}`;
+
+        // Only count if the country is shown
         if (!shownCountries.includes(row.column2)) return;
 
         row.column3.forEach((val, idx) => {
@@ -116,6 +119,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         });
         totalColumn4 += row.column4;
 
+        // If expanded, recurse into children
         if (row.details && expandedRows[rowKey]) {
           accumulate(row.details, level + 1, rowKey);
         }
@@ -200,10 +204,11 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
             )
         )
       ),
-      // Render all filtered rows (including children)
+
+      // Render filtered data rows with children
       ...filteredData.flatMap((team, idx) => renderRow(team, 0, `team-${idx}`, true)),
 
-      // Append the Total row at the end
+      // Render total row after all rows
       React.createElement(
         'tbody',
         { key: 'total-row' },
