@@ -1,5 +1,23 @@
+"use client";
+
 import React, { FC, useMemo, useState } from "react";
-import { PieChart, Pie, Legend, Label, PieLabelRenderProps } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Legend,
+  Label,
+  PieLabelRenderProps,
+} from "recharts";
+
+import { Card, CardContent } from "@/components/frame/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartConfig,
+} from "@/components/frame/ui/chart";
+
+import { Button } from "@/components/frame/ui/button";
 
 type DataType = {
   metric: string;
@@ -9,44 +27,59 @@ type DataType = {
 
 type DynamicPieChartProps = {
   data: DataType[];
+  config: ChartConfig;
 };
 
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data }) => {
+// Floors percentages, then adds leftover to largest slice only
+function getRoundedPercentagesAddLeftoverToLargest(data: DataType[]): number[] {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  if (total === 0) return data.map(() => 0);
+
+  const rawPercentages = data.map((item) => (item.value / total) * 100);
+  const floored = rawPercentages.map((p) => Math.floor(p));
+  const sumFloored = floored.reduce((a, b) => a + b, 0);
+  const leftover = 100 - sumFloored;
+
+  if (leftover > 0) {
+    // Find index of slice with largest raw percentage
+    let maxIndex = 0;
+    let maxValue = rawPercentages[0];
+    for (let i = 1; i < rawPercentages.length; i++) {
+      if (rawPercentages[i] > maxValue) {
+        maxValue = rawPercentages[i];
+        maxIndex = i;
+      }
+    }
+    floored[maxIndex] += leftover;
+  }
+
+  return floored;
+}
+
+const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const totalValue = useMemo(() => data.reduce((acc, d) => acc + d.value, 0), [data]);
+  const totalValue = useMemo(() => {
+    return data.reduce((acc, curr) => acc + Number(curr.value), 0);
+  }, [data]);
 
-  const roundedPercentages = useMemo(() => {
-    if (totalValue === 0) return data.map(() => 0);
+  // Use our fixed rounding function here
+  const roundedPercentages = useMemo(() => getRoundedPercentagesAddLeftoverToLargest(data), [data]);
 
-    const rawPercentages = data.map((d) => (d.value / totalValue) * 100);
-    const floored = rawPercentages.map((p) => Math.floor(p));
-    const sumFloored = floored.reduce((a, b) => a + b, 0);
-    const leftover = 100 - sumFloored;
-
-    if (leftover > 0) {
-      let maxIndex = 0;
-      let maxValue = rawPercentages[0];
-      for (let i = 1; i < rawPercentages.length; i++) {
-        if (rawPercentages[i] > maxValue) {
-          maxValue = rawPercentages[i];
-          maxIndex = i;
-        }
-      }
-      floored[maxIndex] += leftover;
-    }
-
-    return floored;
-  }, [data, totalValue]);
-
-  const renderPercentageLabel = (props: PieLabelRenderProps & { index?: number }) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, index } = props;
+  const renderPercentageLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    index,
+  }: PieLabelRenderProps & { index?: number }) => {
     if (index === undefined) return null;
 
     const RADIAN = Math.PI / 180;
-    const radius = ((innerRadius || 0) + (outerRadius || 0)) / 2;
-    const x = (cx || 0) + radius * Math.cos(-midAngle! * RADIAN);
-    const y = (cy || 0) + radius * Math.sin(-midAngle! * RADIAN);
+    const radius = ((Number(innerRadius) || 0) + (Number(outerRadius) || 0)) / 2;
+    const x = (Number(cx) || 0) + radius * Math.cos(-midAngle * RADIAN);
+    const y = (Number(cy) || 0) + radius * Math.sin(-midAngle * RADIAN);
 
     return (
       <text
@@ -55,57 +88,69 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data }) => {
         fill="#333"
         textAnchor="middle"
         dominantBaseline="central"
-        style={{ fontSize: 12, fontWeight: "bold" }}
+        className="text-xs font-medium"
       >
-        {roundedPercentages[index]}%
+        {`${roundedPercentages[index]}%`}
       </text>
     );
   };
 
   return (
-    <div style={{ padding: 16, maxWidth: 500, margin: "auto" }}>
-      <div style={{ textAlign: "right", marginBottom: 8 }}>
-        <button onClick={() => setIsFullScreen(!isFullScreen)}>
+    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
+      <div className="flex justify-end mb-2">
+        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
           {isFullScreen ? "Exit Full Screen" : "Full Screen"}
-        </button>
+        </Button>
       </div>
 
-      <PieChart width={isFullScreen ? 800 : 400} height={isFullScreen ? 800 : 400}>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="metric"
-          cx="50%"
-          cy="50%"
-          innerRadius={isFullScreen ? 120 : 80}
-          outerRadius={isFullScreen ? 200 : 120}
-          fill="#8884d8"
-          labelLine={false}
-          label={renderPercentageLabel}
-          stroke="#fff"
-          strokeWidth={2}
-        />
-        <Legend verticalAlign="bottom" height={36} />
-        <Label
-          position="center"
-          content={({ viewBox }) => {
-            if (!viewBox) return null;
-            const { cx, cy } = viewBox;
-            return (
-              <text
-                x={cx}
-                y={cy}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={24}
-                fontWeight="bold"
-              >
-                {totalValue.toLocaleString()}
-              </text>
-            );
-          }}
-        />
-      </PieChart>
+      <Card>
+        <CardContent className="flex flex-col items-center max-h-[850px]">
+          <ChartContainer config={config}>
+            <div className="flex flex-col items-center max-h-[850px]">
+              <PieChart width={isFullScreen ? 800 : 350} height={isFullScreen ? 800 : 450}>
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="metric"
+                  innerRadius={isFullScreen ? 120 : 100}
+                  outerRadius={isFullScreen ? 200 : 160}
+                  strokeWidth={5}
+                  labelLine={false}
+                  label={(props) => renderPercentageLabel({ ...props, index: props.index })}
+                >
+                  <Label
+                    content={({ viewBox }) => {
+                      const cx = typeof viewBox?.cx === "number" ? viewBox.cx : 0;
+                      const cy = typeof viewBox?.cy === "number" ? viewBox.cy : 0;
+                      return (
+                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+                          <tspan className="fill-foreground text-3xl font-bold">
+                            {totalValue.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={cx}
+                            y={cy + 24}
+                            className="fill-muted-foreground text-sm"
+                          >
+                            value
+                          </tspan>
+                        </text>
+                      );
+                    }}
+                  />
+                </Pie>
+                <Legend
+                  layout="horizontal"
+                  align="center"
+                  verticalAlign="bottom"
+                  wrapperStyle={{ width: "100%", textAlign: "center" }}
+                />
+              </PieChart>
+            </div>
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };
