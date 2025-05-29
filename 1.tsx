@@ -2,19 +2,20 @@
 
 import React, { FC, useMemo, useState } from "react";
 import {
-  PieChart,
   Pie,
+  PieChart,
   Legend,
   Label,
   PieLabelRenderProps,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/frame/ui/card";
 import {
+  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartConfig,
 } from "@/components/frame/ui/chart";
 
 import { Button } from "@/components/frame/ui/button";
@@ -30,46 +31,55 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// ✅ Ensures percentages are integers summing exactly to 100
-function getRoundedPercentages(data: DataType[]): number[] {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const raw = data.map((item) => (item.value / total) * 100);
+// Adjust data to make the percentage sum exactly 100
+function normalizeData(data: DataType[]): DataType[] {
+  const total = data.reduce((acc, item) => acc + item.value, 0);
+  if (total === 0) return data;
 
-  const floored = raw.map((p) => Math.floor(p));
-  let sum = floored.reduce((a, b) => a + b, 0);
+  const rawPercentages = data.map((item) => ({
+    ...item,
+    rawPercent: (item.value / total) * 100,
+  }));
 
-  // Add +1 to a random index if sum < 100
-  if (sum < 100) {
-    const randomIndex = Math.floor(Math.random() * floored.length);
-    floored[randomIndex] += 1;
-  }
+  const floored = rawPercentages.map((item) => ({
+    ...item,
+    percent: Math.floor(item.rawPercent),
+  }));
 
-  return floored;
+  let flooredSum = floored.reduce((acc, item) => acc + item.percent, 0);
+  const remaining = 100 - flooredSum;
+
+  // Find the slice with the largest original value to give the remainder
+  const maxIndex = rawPercentages.reduce(
+    (maxIdx, item, idx, arr) =>
+      item.value > arr[maxIdx].value ? idx : maxIdx,
+    0
+  );
+  floored[maxIndex].percent += remaining;
+
+  return floored.map((item) => ({
+    ...item,
+    value: item.percent, // now percent becomes the value
+  }));
 }
 
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
+  const normalizedData = useMemo(() => normalizeData(data), [data]);
+
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const totalValue = useMemo(() => {
-    return data.reduce((acc, curr) => acc + Number(curr.value), 0);
-  }, [data]);
-
-  const roundedPercentages = useMemo(() => getRoundedPercentages(data), [data]);
-
   const renderPercentageLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    index,
-  }: PieLabelRenderProps & { index?: number }) => {
-    if (index === undefined) return null;
-
+    cx = 0,
+    cy = 0,
+    midAngle = 0,
+    innerRadius = 0,
+    outerRadius = 0,
+    percent = 0,
+  }: PieLabelRenderProps) => {
     const RADIAN = Math.PI / 180;
-    const radius = ((Number(innerRadius) || 0) + (Number(outerRadius) || 0)) / 2;
-    const x = (Number(cx) || 0) + radius * Math.cos(-midAngle * RADIAN);
-    const y = (Number(cy) || 0) + radius * Math.sin(-midAngle * RADIAN);
+    const radius = (innerRadius + outerRadius) / 2;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
       <text
@@ -80,7 +90,7 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
         dominantBaseline="central"
         className="text-xs font-medium"
       >
-        {`${roundedPercentages[index]}%`}
+        {`${Math.round(percent * 100)}%`}
       </text>
     );
   };
@@ -88,7 +98,10 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
   return (
     <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
       <div className="flex justify-end mb-2">
-        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
+        <Button
+          onClick={() => setIsFullScreen(!isFullScreen)}
+          variant="outline"
+        >
           {isFullScreen ? "Exit Full Screen" : "Full Screen"}
         </Button>
       </div>
@@ -100,42 +113,33 @@ const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
               <PieChart width={isFullScreen ? 800 : 350} height={isFullScreen ? 800 : 450}>
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Pie
-                  data={data}
+                  data={normalizedData}
                   dataKey="value"
                   nameKey="metric"
-                  innerRadius={isFullScreen ? 120 : 100}
-                  outerRadius={isFullScreen ? 200 : 160}
+                  outerRadius={isFullScreen ? 320 : 160}
                   strokeWidth={5}
                   labelLine={false}
-                  label={(props) => renderPercentageLabel({ ...props, index: props.index })}
+                  label={renderPercentageLabel}
                 >
                   <Label
                     content={({ viewBox }) => {
-                      const cx = typeof viewBox?.cx === "number" ? viewBox.cx : 0;
-                      const cy = typeof viewBox?.cy === "number" ? viewBox.cy : 0;
+                      const { cx = 0, cy = 0 } = viewBox ?? {};
+                      const total = 100;
                       return (
                         <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
                           <tspan className="fill-foreground text-3xl font-bold">
-                            {totalValue.toLocaleString()}
+                            {total}
                           </tspan>
-                          <tspan
-                            x={cx}
-                            y={cy + 24}
-                            className="fill-muted-foreground text-sm"
-                          >
+                          <tspan x={cx} y={cy + 24} className="fill-muted-foreground text-sm">
                             value
                           </tspan>
                         </text>
                       );
                     }}
+                    wrapperStyle={{ width: "100%", textAlign: "center" }}
                   />
                 </Pie>
-                <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  wrapperStyle={{ width: "100%", textAlign: "center" }}
-                />
+                <Legend layout="horizontal" align="center" verticalAlign="bottom" />
               </PieChart>
             </div>
           </ChartContainer>
