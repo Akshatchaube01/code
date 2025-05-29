@@ -1,11 +1,11 @@
 import React, { useState, createElement } from 'react';
 
 type RowData = {
-  columna: string;
+  column1: string; // project label
   column2: string;
   column3: string;
   column4: string;
-  columns: string;
+  column5: string; // ← was previously 'columns', renamed to avoid conflict
   column6: string;
   column7: string;
   column?: string;
@@ -26,7 +26,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   };
 
   const renderRow = (row: RowData, level: number, keyPrefix: string): any[] => {
-    const rowKey = `${keyPrefix}-${row.columna ?? ''}-${row.column2 ?? ''}-${row.column3 ?? ''}-${level}`;
+    const rowKey = `${keyPrefix}-${row.column1 ?? ''}-${row.column2 ?? ''}-${row.column3 ?? ''}-${level}`;
     const indent = '\u00A0\u00A0\u00A0\u00A0'.repeat(level);
 
     const cells = [
@@ -38,7 +38,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
           onClick: level === 0 ? () => toggleRow(rowKey) : undefined,
           style: level === 0 ? { cursor: 'pointer' } : undefined,
         },
-        row.columna ?? ''
+        row.column1 ?? ''
       ),
       createElement(
         'td',
@@ -52,7 +52,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
       ),
       createElement('td', { key: 'col3', className: 'px-4 py-2' }, row.column3 ?? ''),
       createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4 ?? ''),
-      createElement('td', { key: 'col5', className: 'px-4 py-2' }, row.columns ?? ''),
+      createElement('td', { key: 'col5', className: 'px-4 py-2' }, row.column5 ?? ''), // fixed
       createElement('td', { key: 'col6', className: 'px-4 py-2' }, row.column6 ?? ''),
       createElement('td', { key: 'col7', className: 'px-4 py-2' }, row.column7 ?? ''),
       createElement('td', { key: 'col8', className: 'px-4 py-2' }, row.column ?? ''),
@@ -83,7 +83,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  // Totals for parent rows only (columns 4–8)
+  // Totals
   let sumCol4 = 0;
   let sumCol5 = 0;
   let sumCol6 = 0;
@@ -92,7 +92,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
 
   data.forEach((row) => {
     const n4 = parseFloat(row.column4);
-    const n5 = parseFloat(row.columns);
+    const n5 = parseFloat(row.column5);
     const n6 = parseFloat(row.column6);
     const n7 = parseFloat(row.column7);
     const n8 = parseFloat(row.column ?? '0');
@@ -104,7 +104,6 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     if (!isNaN(n8)) sumCol8 += n8;
   });
 
-  // Final row with numeric totals (no label)
   const totalRow = createElement(
     'tr',
     { key: 'total-row', className: 'bg-red-100 font-bold border-t border-red-400' },
