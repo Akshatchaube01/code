@@ -1,188 +1,198 @@
-"use client";
+import React, { useState, useEffect } from 'react';
 
-import React, { FC, useMemo, useState } from "react";
-import {
-  Pie,
-  PieChart,
-  Legend,
-  Label,
-  PieLabelRenderProps,
-  Tooltip as RechartsTooltip,
-  TooltipProps,
-} from "recharts";
-
-import { Card, CardContent } from "@/components/frame/ui/card";
-import { ChartConfig, ChartContainer } from "@/components/frame/ui/chart";
-import { Button } from "@/components/frame/ui/button";
-
-type DataType = {
-  metric: string;
-  value: number;
-  fill: string;
+type RowData = {
+  column1: string; // Team
+  column2: string; // Work Location Country
+  column3: number[];
+  column4: number;
+  details?: RowData[];
 };
 
-type DynamicPieChartProps = {
-  data: DataType[];
-  config: ChartConfig;
+type Column = {
+  name: string;
+  sub_columns?: string[];
+  rowspan: number;
+  colspan: number;
 };
 
-// Normalize to 100% (floors all and adds remaining to largest)
-function normalizeData(data: DataType[]): DataType[] {
-  const total = data.reduce((acc, item) => acc + item.value, 0);
-  if (total === 0) return data;
-
-  const rawPercentages = data.map((item) => ({
-    ...item,
-    rawPercent: (item.value / total) * 100,
-  }));
-
-  const floored = rawPercentages.map((item) => ({
-    ...item,
-    percent: Math.floor(item.rawPercent),
-  }));
-
-  const flooredSum = floored.reduce((acc, item) => acc + item.percent, 0);
-  const remaining = 100 - flooredSum;
-
-  const maxIndex = rawPercentages.reduce(
-    (maxIdx, item, idx, arr) =>
-      item.value > arr[maxIdx].value ? idx : maxIdx,
-    0
-  );
-  floored[maxIndex].percent += remaining;
-
-  return floored.map((item) => ({
-    metric: item.metric,
-    value: item.percent,
-    fill: item.fill,
-  }));
-}
-
-// Custom Tooltip
-const CustomTooltip: FC<
-  TooltipProps<number, string> & { originalData: DataType[]; total: number }
-> = ({ active, payload, originalData, total }) => {
-  if (!active || !payload?.length) return null;
-
-  const { name } = payload[0];
-  const actual = originalData.find((d) => d.metric === name);
-  if (!actual || !total) return null;
-
-  const percent = ((actual.value / total) * 100).toFixed(1);
-
-  return (
-    <div className="bg-white shadow p-2 rounded text-sm border">
-      <div className="font-medium">{actual.metric}</div>
-      <div>Value: {actual.value}</div>
-      <div>Percentage: {percent}%</div>
-    </div>
-  );
+type TableProps = {
+  columns: Column[];
+  data: RowData[];
 };
 
-const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
-  const originalTotal = useMemo(
-    () => data.reduce((acc, item) => acc + item.value, 0),
-    [data]
+const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => {
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [shownCountries, setShownCountries] = useState<string[]>([]);
+
+  const allCountries = Array.from(
+    new Set(data.flatMap(team => team.details?.map(child => child.column2) || []))
   );
-  const normalizedData = useMemo(() => normalizeData(data), [data]);
-  const [isFullScreen, setIsFullScreen] = useState(false);
 
-  const renderPercentageLabel = ({
-    cx = 0,
-    cy = 0,
-    midAngle = 0,
-    innerRadius = 0,
-    outerRadius = 0,
-    percent = 0,
-  }: PieLabelRenderProps) => {
-    const RADIAN = Math.PI / 180;
-    const ir = typeof innerRadius === "number" ? innerRadius : parseFloat(innerRadius);
-    const or = typeof outerRadius === "number" ? outerRadius : parseFloat(outerRadius);
-    const radius = (ir + or) / 2;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  useEffect(() => {
+    setShownCountries(allCountries);
+  }, [data]);
 
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#333"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="text-xs font-medium"
-      >
-        {`${Math.round(percent * 100)}%`}
-      </text>
+  const toggleRow = (key: string) => {
+    setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleCountry = (country: string) => {
+    setShownCountries(prev =>
+      prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]
     );
   };
 
-  const pieSize = {
-    width: isFullScreen ? 800 : 350,
-    height: isFullScreen ? 800 : 450,
-    outerRadius: isFullScreen ? 200 : 120,
-    innerRadius: isFullScreen ? 100 : 60,
+  const clearFilters = () => {
+    setShownCountries(allCountries);
   };
 
+  const visibleChildRows: RowData[] = [];
+
+  const renderRow = (
+    row: RowData,
+    level: number,
+    keyPrefix: string,
+    isVisible: boolean
+  ): JSX.Element[] => {
+    if (!isVisible) return [];
+
+    const rowKey = `${keyPrefix}-${row.column1}-${row.column2}-${level}`;
+    const isParent = level === 0;
+    const isExpandable = isParent && row.details && row.details.length > 0;
+
+    const cells = [
+      <td key="col1" className="px-4 py-2 font-medium">{row.column1}</td>,
+      <td key="col2" className="px-4 py-2">{row.column2}</td>,
+      ...row.column3.map((value, idx) => (
+        <td key={`col3-${idx}`} className="px-4 py-2">{value}</td>
+      )),
+      <td key="col4" className="px-4 py-2">{row.column4}</td>
+    ];
+
+    const mainRow = (
+      <tr
+        key={rowKey}
+        className="border-t border-red-300 bg-white"
+        onClick={isExpandable ? () => toggleRow(rowKey) : undefined}
+        style={isExpandable ? { cursor: 'pointer' } : {}}
+      >
+        {cells}
+      </tr>
+    );
+
+    const children: JSX.Element[] = [];
+
+    if (isExpandable && expandedRows[rowKey]) {
+      row.details!.forEach((child, i) => {
+        const visible = shownCountries.includes(child.column2);
+        if (visible) visibleChildRows.push(child); // collect for totals
+        children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`, visible));
+      });
+    }
+
+    return [mainRow, ...children];
+  };
+
+  const filteredData = data.filter(team => {
+    const children = team.details || [];
+    const visibleChildren = children.filter(child =>
+      shownCountries.includes(child.column2)
+    );
+    return visibleChildren.length > 0;
+  });
+
+  const calculateTotals = () => {
+    const totalCols = visibleChildRows[0]?.column3.length || 0;
+    const totalColumn3 = Array(totalCols).fill(0);
+    let totalColumn4 = 0;
+
+    visibleChildRows.forEach(row => {
+      row.column3.forEach((val, idx) => {
+        totalColumn3[idx] += val;
+      });
+      totalColumn4 += row.column4;
+    });
+
+    return { totalColumn3, totalColumn4 };
+  };
+
+  const { totalColumn3, totalColumn4 } = calculateTotals();
+
   return (
-    <div className={isFullScreen ? "fixed inset-0 bg-white z-50 p-6 overflow-auto" : ""}>
-      <div className="flex justify-end mb-2">
-        <Button onClick={() => setIsFullScreen(!isFullScreen)} variant="outline">
-          {isFullScreen ? "Exit Full Screen" : "Full Screen"}
-        </Button>
+    <div className="overflow-x-auto rounded-xl border-2 border-red-600 shadow-sm p-4">
+      <div className="mb-4">
+        <p className="font-semibold mb-2">Select Countries to Display:</p>
+        <div className="flex flex-wrap gap-4">
+          {allCountries.map(country => (
+            <label key={country} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                value={country}
+                checked={shownCountries.includes(country)}
+                onChange={() => toggleCountry(country)}
+              />
+              <span>{country}</span>
+            </label>
+          ))}
+        </div>
+        <button
+          onClick={clearFilters}
+          className="mt-3 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Clear Filters
+        </button>
       </div>
 
-      <Card>
-        <CardContent className="flex flex-col items-center max-h-[850px]">
-          <ChartContainer config={config}>
-            <div className="flex flex-col items-center max-h-[850px]">
-              <PieChart width={pieSize.width} height={pieSize.height}>
-                <Pie
-                  data={normalizedData}
-                  dataKey="value"
-                  nameKey="metric"
-                  outerRadius={pieSize.outerRadius}
-                  innerRadius={pieSize.innerRadius}
-                  strokeWidth={5}
-                  labelLine={false}
-                  label={renderPercentageLabel}
-                >
-                  <Label
-                    content={({ viewBox }) => {
-                      const { cx = 0, cy = 0 } = viewBox || {};
-                      return (
-                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
-                          <tspan className="fill-foreground text-3xl font-bold">100</tspan>
-                          <tspan x={cx} y={cy + 24} className="fill-muted-foreground text-sm">
-                            percent
-                          </tspan>
-                        </text>
-                      );
-                    }}
-                    wrapperStyle={{ width: "100%", textAlign: "center" }}
-                  />
-                </Pie>
-                <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  iconType="plainline" // Removes circle icons
-                />
-                <RechartsTooltip<number, string>
-                  content={(props) => (
-                    <CustomTooltip
-                      {...props}
-                      originalData={data}
-                      total={originalTotal}
-                    />
-                  )}
-                />
-              </PieChart>
-            </div>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      {/* Table */}
+      <table className="min-w-full table-auto">
+        <thead className="bg-red-600 text-white">
+          <tr>
+            {columns.map((col, i) => (
+              <th
+                key={`col-${i}`}
+                className="px-4 py-3 text-left"
+                colSpan={col.colspan}
+                rowSpan={col.rowspan}
+              >
+                {col.name}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {columns
+              .filter(col => col.sub_columns && col.sub_columns.length > 0)
+              .flatMap(col =>
+                col.sub_columns!.map((subCol, j) => (
+                  <th
+                    key={`subcol-${col.name}-${j}`}
+                    className="px-4 py-3 text-left"
+                  >
+                    {subCol}
+                  </th>
+                ))
+              )}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredData.flatMap((team, idx) =>
+            renderRow(team, 0, `team-${idx}`, true)
+          )}
+        </tbody>
+        <tfoot className="bg-red-100 font-semibold text-red-800">
+          <tr>
+            <td className="px-4 py-2">Total</td>
+            <td className="px-4 py-2">—</td>
+            {totalColumn3.map((val, i) => (
+              <td key={`total-col3-${i}`} className="px-4 py-2">
+                {val}
+              </td>
+            ))}
+            <td className="px-4 py-2">{totalColumn4}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 };
 
-export default DynamicPieChart;
+export default ExpandableUtilizationTable;
