@@ -7,7 +7,6 @@ import {
   Legend,
   Label,
   PieLabelRenderProps,
-  Tooltip as RechartsTooltip,
 } from "recharts";
 
 import { Card, CardContent } from "@/components/frame/ui/card";
@@ -31,28 +30,21 @@ type DynamicPieChartProps = {
   config: ChartConfig;
 };
 
-// ✅ Utility to ensure rounded percentages sum to exactly 100
+// ✅ Ensures percentages are integers summing exactly to 100
 function getRoundedPercentages(data: DataType[]): number[] {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const raw = data.map((item) => (item.value / total) * 100);
 
-  const rounded = raw.map((p) => Math.floor(p));
-  let sum = rounded.reduce((a, b) => a + b, 0);
+  const floored = raw.map((p) => Math.floor(p));
+  let sum = floored.reduce((a, b) => a + b, 0);
 
-  const decimalDiffs = raw.map((p, i) => ({
-    index: i,
-    diff: p - rounded[i],
-  }));
+  // Add +1 to a random index if sum < 100
+  if (sum < 100) {
+    const randomIndex = Math.floor(Math.random() * floored.length);
+    floored[randomIndex] += 1;
+  }
 
-  // Add 1 to the top (100 - sum) diffs
-  decimalDiffs
-    .sort((a, b) => b.diff - a.diff)
-    .slice(0, 100 - sum)
-    .forEach((item) => {
-      rounded[item.index]++;
-    });
-
-  return rounded;
+  return floored;
 }
 
 const DynamicPieChart: FC<DynamicPieChartProps> = ({ data, config }) => {
