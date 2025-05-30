@@ -40,19 +40,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
       createElement(
         'td',
         { key: 'col2', className: 'px-4 py-2' },
-        level > 0 ? indent + (row.column2 ?? '-') : row.column2 ?? '-',
-        row.details2 &&
-          createElement(
-            'button',
-            {
-              onClick: (e) => {
-                e.stopPropagation();
-                toggleRow(expand2Key);
-              },
-              className: 'text-sm text-blue-600 underline ml-2',
-            },
-            expandedRows[expand2Key] ? 'Hide Sub-details' : 'Show Sub-details'
-          )
+        level > 0 ? indent + (row.column2 ?? '-') : row.column2 ?? '-'
       ),
       createElement('td', { key: 'col3', className: 'px-4 py-2' }, row.column3 ?? ''),
       createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4 ?? ''),
@@ -66,7 +54,13 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
       {
         key: rowKey,
         className: 'border-t border-red-300 bg-white hover:bg-gray-50 cursor-pointer',
-        onClick: isExpandable ? () => toggleRow(rowKey) : undefined,
+        onClick: () => {
+          if (level === 0 && row.details1) {
+            toggleRow(rowKey);
+          } else if (level === 1 && row.details2) {
+            toggleRow(expand2Key);
+          }
+        },
       },
       ...cells
     );
