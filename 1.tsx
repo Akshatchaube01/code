@@ -21,28 +21,44 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (key: string) => {
-    setExpandedRows(prev => ({ ...prev, [key]: !prev[key] }));
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const renderRow = (row: RowData, level: number, keyPrefix: string): any[] => {
     const rowKey = `${keyPrefix}-${row.column1 ?? ''}-${row.column2 ?? ''}-${row.column3 ?? ''}-${level}`;
-    const isExpandable = level === 0 && (row.details1 || row.details2);
-    const indent = '\u00A0\u00A0\u00A0'.repeat(level);
+    const expand2Key = `${rowKey}-expand2`;
+    const isExpandable = level === 0 && row.details1;
+
+    const indent = '\u00A0\u00A0'.repeat(level);
 
     const cells = [
-      createElement('td', {
-        key: 'col1',
-        className: 'px-4 py-2 font-medium',
-      }, row.column1 ?? ''),
-      createElement('td', {
-        key: 'col2',
-        className: 'px-4 py-2',
-      }, level > 0 ? `${indent}${row.column2 ?? '-'}` : row.column2 ?? '-'),
+      createElement(
+        'td',
+        { key: 'col1', className: 'px-4 py-2' },
+        row.column1 ?? ''
+      ),
+      createElement(
+        'td',
+        { key: 'col2', className: 'px-4 py-2' },
+        level > 0 ? indent + (row.column2 ?? '-') : row.column2 ?? '-',
+        row.details2 &&
+          createElement(
+            'button',
+            {
+              onClick: (e) => {
+                e.stopPropagation();
+                toggleRow(expand2Key);
+              },
+              className: 'text-sm text-blue-600 underline ml-2',
+            },
+            expandedRows[expand2Key] ? 'Hide Sub-details' : 'Show Sub-details'
+          )
+      ),
       createElement('td', { key: 'col3', className: 'px-4 py-2' }, row.column3 ?? ''),
       createElement('td', { key: 'col4', className: 'px-4 py-2' }, row.column4 ?? ''),
       createElement('td', { key: 'col5', className: 'px-4 py-2' }, row.column5 ?? ''),
       createElement('td', { key: 'col6', className: 'px-4 py-2' }, row.column6 ?? ''),
-      createElement('td', { key: 'col7', className: 'px-4 py-2' }, row.column7 ?? ''),
+      createElement('td', { key: 'col7', className: 'px-4 py-2' }, row.column7 ?? '')
     ];
 
     const mainRow = createElement(
@@ -50,7 +66,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
       {
         key: rowKey,
         className: 'border-t border-red-300 bg-white hover:bg-gray-50 cursor-pointer',
-        onClick: isExpandable ? () => toggleRow(rowKey) : undefined
+        onClick: isExpandable ? () => toggleRow(rowKey) : undefined,
       },
       ...cells
     );
@@ -64,8 +80,6 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
       });
     }
 
-    const expand2Key = `${rowKey}-expand2`;
-
     if (expandedRows[expand2Key] && row.details2) {
       row.details2.forEach((child, j) => {
         const childKey = `${rowKey}-subchild-${j}`;
@@ -76,10 +90,8 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     return [mainRow, ...children];
   };
 
-  let sumCol4 = 0;
-  let sumCol5 = 0;
-  let sumCol6 = 0;
-  let sumCol7 = 0;
+  // Calculate totals
+  let sumCol4 = 0, sumCol5 = 0, sumCol6 = 0, sumCol7 = 0;
 
   data.forEach((row) => {
     const n4 = parseFloat(row.column4);
@@ -102,7 +114,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     createElement('td', { className: 'px-4 py-2' }, sumCol4.toFixed(2)),
     createElement('td', { className: 'px-4 py-2' }, sumCol5.toFixed(2)),
     createElement('td', { className: 'px-4 py-2' }, sumCol6.toFixed(2)),
-    createElement('td', { className: 'px-4 py-2' }, sumCol7.toFixed(2)),
+    createElement('td', { className: 'px-4 py-2' }, sumCol7.toFixed(2))
   );
 
   return createElement(
@@ -118,10 +130,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
           'tr',
           null,
           ...columns.map((col, i) =>
-            createElement('th', {
-              key: `col-${i}`,
-              className: 'px-4 py-3 text-left',
-            }, col.name)
+            createElement('th', { key: `col-${i}`, className: 'px-4 py-3 text-left' }, col.name)
           )
         )
       ),
