@@ -5,30 +5,39 @@ const RenderAutocomplete = (
   key: keyof typeof filters,
   disabled?: boolean
 ) => {
+  const [inputValue, setInputValue] = useState("");
+
   const isAllSelected = selected.length === options.length;
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
-  const showAllSelected = isSingleSelectOnly && isAllSelected;
+  const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
 
-  const filteredOptions =
-    key === "projectType"
-      ? removeByName(options, "Generic Activities")
-      : options;
+  const filteredBaseOptions =
+    key === "projectType" ? removeByName(options, "Generic Activities") : options;
+
+  const finalOptions =
+    inputValue.trim() === ""
+      ? [SELECT_ALL_OPTION, ...filteredBaseOptions]
+      : filteredBaseOptions;
 
   return (
     <Autocomplete
       multiple={!isSingleSelectOnly}
       disableCloseOnSelect
-      options={[SELECT_ALL_OPTION, ...filteredOptions]}
+      options={finalOptions}
       value={
         isSingleSelectOnly
           ? selected.length > 0
             ? selected[0]
             : null
           : isAllSelected
-          ? [...options]
+          ? [...filteredBaseOptions]
           : selected
       }
+      inputValue={showAllSelected ? "All Selected" : inputValue}
+      onInputChange={(event, newInputValue) => {
+        setInputValue(newInputValue);
+      }}
       onChange={(
         event: SyntheticEvent,
         newValue: Option[] | Option | null,
@@ -44,18 +53,17 @@ const RenderAutocomplete = (
         }
 
         const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_OPTION.id);
-
         let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
           if (isSelectAll) {
-            finalSelection = options;
+            finalSelection = filteredBaseOptions;
           } else if (valueArray.length > 0) {
             finalSelection = [valueArray[valueArray.length - 1]];
           }
         } else {
           finalSelection = isSelectAll && isAllSelected
-            ? options
+            ? filteredBaseOptions
             : valueArray.filter(o => o.id !== SELECT_ALL_OPTION.id);
         }
 
@@ -70,8 +78,11 @@ const RenderAutocomplete = (
             return { ...prev, [key]: finalSelection };
           }
         });
+
+        // Reset inputValue after selection
+        setInputValue("");
       }}
-      getOptionLabel={(option) => option.name || ''}
+      getOptionLabel={(option) => option.name || ""}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
       renderInput={(params) => (
         <TextField
@@ -83,20 +94,6 @@ const RenderAutocomplete = (
               ? "Please make a selection"
               : ""
           }
-          InputProps={{
-            ...params.InputProps,
-            value:
-              showAllSelected && !params.inputProps.value
-                ? "All Selected"
-                : params.inputProps.value,
-          }}
-          inputProps={{
-            ...params.inputProps,
-            value:
-              showAllSelected && !params.inputProps.value
-                ? "All Selected"
-                : params.inputProps.value,
-          }}
         />
       )}
       className="bg-white rounded"
