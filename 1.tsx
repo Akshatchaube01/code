@@ -1,3 +1,8 @@
+const SELECT_ALL_OPTION = {
+  id: "__select_all__",
+  name: "SELECT ALL",
+};
+
 const RenderAutocomplete = (
   label: string,
   options: Option[],
@@ -5,8 +10,6 @@ const RenderAutocomplete = (
   key: keyof typeof filters,
   disabled?: boolean
 ) => {
-  const [inputValue, setInputValue] = useState("");
-
   const isAllSelected = selected.length === options.length || selected.length === 8;
 
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
@@ -14,22 +17,13 @@ const RenderAutocomplete = (
 
   const showAllSelected = isSingleSelectOnly && isAllSelected;
 
-  const SELECT_ALL_OPTION = {
-    id: "__select_all__",
-    name: "SELECT ALL"
-  };
-
   return (
     <Autocomplete
       multiple={!isSingleSelectOnly}
       disableCloseOnSelect
-      inputValue={inputValue}
-      onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
       options={[
         SELECT_ALL_OPTION,
-        ...options.filter(o =>
-          o.name.toLowerCase().includes(inputValue.toLowerCase())
-        )
+        ...(key === "projectType" ? removeByName(options, "Generic Activities") : options),
       ]}
       value={
         isSingleSelectOnly
@@ -55,6 +49,7 @@ const RenderAutocomplete = (
         }
 
         const isSelectAll = valueArray.some((opt) => opt.id === SELECT_ALL_OPTION.id);
+
         let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
@@ -87,20 +82,29 @@ const RenderAutocomplete = (
         if (option && typeof option === "object" && "name" in option) return option.name;
         return "Selected All";
       }}
+      filterOptions={(options, state) =>
+        options.filter(
+          (option) =>
+            option.name?.toLowerCase().includes(state.inputValue.toLowerCase()) ||
+            option.id === SELECT_ALL_OPTION.id
+        )
+      }
       renderInput={(params) => (
         <TextField
           {...params}
           label={label}
-          value={undefined}
-          error={selected.length === 0 && !disabled && isAllSelected}
+          error={selected.length === 0 && !disabled && !isAllSelected}
           helperText={
-            selected.length === 0 && !disabled && isAllSelected
+            selected.length === 0 && !disabled && !isAllSelected
               ? "Please make a selection"
               : ""
           }
           InputProps={{
             ...params.InputProps,
-            value: showAllSelected ? "All Selected" : params.InputProps.value,
+            inputProps: {
+              ...params.inputProps,
+              value: showAllSelected ? "All Selected" : params.inputProps.value,
+            },
           }}
         />
       )}
