@@ -10,21 +10,18 @@ const RenderAutocomplete = (
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
 
-  const filteredBaseOptions =
-    key === "projectType" ? removeByName(options, "Generic Activities") : options;
+  const filteredOptions = key === "projectType" ? removeByName(options, "Generic Activities") : options;
+  const isAllSelected = selected.length === filteredOptions.length;
 
-  const isAllSelected = selected.length === filteredBaseOptions.length;
+  const SELECT_ALL_OPTION = { id: "__select_all__", name: "All Selected" };
   const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
 
-  const SELECT_ALL_DISPLAY_OPTION = {
-    id: "__select_all__",
-    name: "All Selected"
-  };
-
-  const finalOptions = useMemo(() => {
-    const base = key === "projectType" ? removeByName(options, "Generic Activities") : options;
-    return inputValue.trim() === "" ? [...base, SELECT_ALL_DISPLAY_OPTION] : base;
-  }, [inputValue, options, key]);
+  const finalOptions =
+    inputValue.trim() === ""
+      ? [SELECT_ALL_OPTION, ...filteredOptions]
+      : filteredOptions.filter((opt) =>
+          opt.name.toLowerCase().includes(inputValue.toLowerCase())
+        );
 
   return (
     <Autocomplete
@@ -37,14 +34,19 @@ const RenderAutocomplete = (
             ? selected[0]
             : null
           : isAllSelected
-          ? [...filteredBaseOptions]
+          ? [...filteredOptions]
           : selected
       }
       inputValue={inputValue}
       onInputChange={(event, newInputValue) => {
         setInputValue(newInputValue);
       }}
-      onChange={(event, newValue: Option[] | Option | null) => {
+      onChange={(
+        event: SyntheticEvent,
+        newValue: Option[] | Option | null,
+        reason: AutocompleteChangeReason,
+        details?: AutocompleteChangeDetails<Option>
+      ) => {
         let valueArray: Option[] = [];
 
         if (Array.isArray(newValue)) {
@@ -53,22 +55,23 @@ const RenderAutocomplete = (
           valueArray = [newValue];
         }
 
-        const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_DISPLAY_OPTION.id);
+        const isSelectAll = valueArray.some((opt) => opt.id === SELECT_ALL_OPTION.id);
         let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
           if (isSelectAll) {
-            finalSelection = filteredBaseOptions;
+            finalSelection = filteredOptions;
           } else if (valueArray.length > 0) {
             finalSelection = [valueArray[valueArray.length - 1]];
           }
         } else {
-          finalSelection = isSelectAll && isAllSelected
-            ? filteredBaseOptions
-            : valueArray.filter(o => o.id !== SELECT_ALL_DISPLAY_OPTION.id);
+          finalSelection =
+            isSelectAll && isAllSelected
+              ? filteredOptions
+              : valueArray.filter((o) => o.id !== SELECT_ALL_OPTION.id);
         }
 
-        setFilters(prev => {
+        setFilters((prev) => {
           if (key === "selectedTeam") {
             const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
               acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
@@ -82,12 +85,13 @@ const RenderAutocomplete = (
 
         setInputValue("");
       }}
-      getOptionLabel={(option) => {
-        if (typeof option === "string") return option;
-        if (option && typeof option === "object" && "name" in option) return option.name;
-        return "";
-      }}
-      isOptionEqualToValue={(opt, val) => opt.id === val.id}
+      getOptionLabel={(option) =>
+        typeof option === "string"
+          ? option
+          : option && typeof option === "object" && "name" in option
+          ? option.name
+          : ""
+      }
       renderInput={(params) => (
         <TextField
           {...params}
@@ -102,12 +106,10 @@ const RenderAutocomplete = (
             ...params.InputProps,
             value: showAllSelected ? "All Selected" : params.InputProps.value,
           }}
-          inputProps={{
-            ...params.inputProps,
-            value: showAllSelected ? "All Selected" : params.inputProps.value,
-          }}
         />
       )}
+      inputValue={inputValue}
+      isOptionEqualToValue={(opt, val) => opt.id === val.id}
       className="bg-white rounded"
       disabled={disabled}
       disablePortal={false}
