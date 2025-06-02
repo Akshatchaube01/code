@@ -10,24 +10,31 @@ const RenderAutocomplete = (
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
 
+  // Filter out "Generic Activities" for projectType key
   const filteredOptions = key === "projectType" ? removeByName(options, "Generic Activities") : options;
+
+  const SELECT_ALL_OPTION = { id: "__select_all__", name: "SELECT ALL" };
+
+  // Check if all base options are selected
   const isAllSelected = selected.length === filteredOptions.length;
 
-  const SELECT_ALL_OPTION = { id: "__select_all__", name: "All Selected" };
-  const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
+  // Build the options list: always add SELECT ALL at the top
+  // On input, filter options (except SELECT ALL, which always shows)
+  const finalOptions = filteredOptions.filter(opt =>
+    opt.name.toLowerCase().includes(inputValue.toLowerCase())
+  );
+  const optionsWithSelectAll = [SELECT_ALL_OPTION, ...finalOptions];
 
-  const finalOptions =
-    inputValue.trim() === ""
-      ? [SELECT_ALL_OPTION, ...filteredOptions]
-      : filteredOptions.filter((opt) =>
-          opt.name.toLowerCase().includes(inputValue.toLowerCase())
-        );
+  // Determine what to show in the input display
+  // If all selected and single select, show "ALL SELECTED"
+  const showAllSelectedLabel =
+    isSingleSelectOnly && isAllSelected && !inputValue && selected.length > 0;
 
   return (
     <Autocomplete
       multiple={!isSingleSelectOnly}
       disableCloseOnSelect
-      options={finalOptions}
+      options={optionsWithSelectAll}
       value={
         isSingleSelectOnly
           ? selected.length > 0
@@ -42,7 +49,7 @@ const RenderAutocomplete = (
         setInputValue(newInputValue);
       }}
       onChange={(
-        event: SyntheticEvent,
+        event: React.SyntheticEvent,
         newValue: Option[] | Option | null,
         reason: AutocompleteChangeReason,
         details?: AutocompleteChangeDetails<Option>
@@ -55,7 +62,8 @@ const RenderAutocomplete = (
           valueArray = [newValue];
         }
 
-        const isSelectAll = valueArray.some((opt) => opt.id === SELECT_ALL_OPTION.id);
+        const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_OPTION.id);
+
         let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
@@ -65,13 +73,12 @@ const RenderAutocomplete = (
             finalSelection = [valueArray[valueArray.length - 1]];
           }
         } else {
-          finalSelection =
-            isSelectAll && isAllSelected
-              ? filteredOptions
-              : valueArray.filter((o) => o.id !== SELECT_ALL_OPTION.id);
+          finalSelection = isSelectAll
+            ? filteredOptions
+            : valueArray.filter(opt => opt.id !== SELECT_ALL_OPTION.id);
         }
 
-        setFilters((prev) => {
+        setFilters(prev => {
           if (key === "selectedTeam") {
             const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
               acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
@@ -86,17 +93,9 @@ const RenderAutocomplete = (
         setInputValue("");
       }}
       getOptionLabel={(option) => {
-        // Show "All Selected" when appropriate for single select
-        if (
-          isSingleSelectOnly &&
-          isAllSelected &&
-          !inputValue &&
-          selected.length > 0 &&
-          option.id === selected[0].id
-        ) {
-          return "All Selected";
+        if (showAllSelectedLabel && selected.length > 0 && option.id === selected[0].id) {
+          return "ALL SELECTED";
         }
-
         if (typeof option === "string") return option;
         if (option && typeof option === "object" && "name" in option) return option.name;
         return "";
