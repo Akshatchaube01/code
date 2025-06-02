@@ -5,57 +5,47 @@ const RenderAutocomplete = (
   key: keyof typeof filters,
   disabled?: boolean
 ) => {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = React.useState("");
+
+  const isAllSelected = selected.length === options.length || selected.length === 8;
 
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
 
-  // Filter out "Generic Activities" for projectType key
-  const filteredOptions = key === "projectType" ? removeByName(options, "Generic Activities") : options;
+  const showAllSelected = isSingleSelectOnly && isAllSelected;
 
   const SELECT_ALL_OPTION = { id: "__select_all__", name: "SELECT ALL" };
 
-  // Check if all base options are selected
-  const isAllSelected = selected.length === filteredOptions.length;
-
-  // Build the options list: always add SELECT ALL at the top
-  // On input, filter options (except SELECT ALL, which always shows)
-  const finalOptions = filteredOptions.filter(opt =>
+  // Filter options based on inputValue but always include SELECT_ALL_OPTION on top
+  const filteredOptions = options.filter(opt =>
     opt.name.toLowerCase().includes(inputValue.toLowerCase())
   );
-  const optionsWithSelectAll = [SELECT_ALL_OPTION, ...finalOptions];
-
-  // Determine what to show in the input display
-  // If all selected and single select, show "ALL SELECTED"
-  const showAllSelectedLabel =
-    isSingleSelectOnly && isAllSelected && !inputValue && selected.length > 0;
+  const finalOptions = [SELECT_ALL_OPTION, ...filteredOptions];
 
   return (
     <Autocomplete
       multiple={!isSingleSelectOnly}
       disableCloseOnSelect
-      options={optionsWithSelectAll}
+      options={finalOptions}
       value={
         isSingleSelectOnly
           ? selected.length > 0
             ? selected[0]
             : null
           : isAllSelected
-          ? [...filteredOptions]
+          ? [...options]
           : selected
       }
-      inputValue={inputValue}
       onInputChange={(event, newInputValue) => {
         setInputValue(newInputValue);
       }}
       onChange={(
-        event: React.SyntheticEvent,
-        newValue: Option[] | Option | null,
-        reason: AutocompleteChangeReason,
-        details?: AutocompleteChangeDetails<Option>
+        event,
+        newValue,
+        reason,
+        details
       ) => {
-        let valueArray: Option[] = [];
-
+        let valueArray = [];
         if (Array.isArray(newValue)) {
           valueArray = newValue;
         } else if (newValue) {
@@ -64,26 +54,26 @@ const RenderAutocomplete = (
 
         const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_OPTION.id);
 
-        let finalSelection: Option[] = [];
+        let finalSelection = [];
 
         if (isSingleSelectOnly) {
           if (isSelectAll) {
-            finalSelection = filteredOptions;
+            finalSelection = options;
           } else if (valueArray.length > 0) {
             finalSelection = [valueArray[valueArray.length - 1]];
           }
         } else {
-          finalSelection = isSelectAll
-            ? filteredOptions
-            : valueArray.filter(opt => opt.id !== SELECT_ALL_OPTION.id);
+          finalSelection = isSelectAll && isAllSelected
+            ? options
+            : valueArray.filter(o => o.id !== SELECT_ALL_OPTION.id);
         }
 
         setFilters(prev => {
           if (key === "selectedTeam") {
-            const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
-              acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
+            const resetFilters = Object.keys(prev).reduce((acc, k) => {
+              acc[k] = k === "selectedTeam" ? finalSelection : [];
               return acc;
-            }, {} as typeof filters);
+            }, {});
             return resetFilters;
           } else {
             return { ...prev, [key]: finalSelection };
@@ -93,23 +83,21 @@ const RenderAutocomplete = (
         setInputValue("");
       }}
       getOptionLabel={(option) => {
-        if (showAllSelectedLabel && selected.length > 0 && option.id === selected[0].id) {
-          return "ALL SELECTED";
-        }
         if (typeof option === "string") return option;
         if (option && typeof option === "object" && "name" in option) return option.name;
-        return "";
+        return "Selected All";
       }}
       renderInput={(params) => (
         <TextField
           {...params}
           label={label}
-          error={selected.length === 0 && !disabled && !isAllSelected}
-          helperText={
-            selected.length === 0 && !disabled && !isAllSelected
-              ? "Please make a selection"
-              : ""
-          }
+          value={undefined}
+          error={selected.length === 0 && !disabled && isAllSelected}
+          helperText={selected.length === 0 && !disabled && isAllSelected ? "Please make a selection" : ""}
+          InputProps={{
+            ...params.InputProps,
+            value: showAllSelected ? "All Selected" : params.inputProps.value,
+          }}
         />
       )}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
