@@ -85,13 +85,22 @@ const RenderAutocomplete = (
 
         setInputValue("");
       }}
-      getOptionLabel={(option) =>
-        typeof option === "string"
-          ? option
-          : option && typeof option === "object" && "name" in option
-          ? option.name
-          : ""
-      }
+      getOptionLabel={(option) => {
+        // Show "All Selected" when appropriate for single select
+        if (
+          isSingleSelectOnly &&
+          isAllSelected &&
+          !inputValue &&
+          selected.length > 0 &&
+          option.id === selected[0].id
+        ) {
+          return "All Selected";
+        }
+
+        if (typeof option === "string") return option;
+        if (option && typeof option === "object" && "name" in option) return option.name;
+        return "";
+      }}
       renderInput={(params) => (
         <TextField
           {...params}
@@ -102,13 +111,8 @@ const RenderAutocomplete = (
               ? "Please make a selection"
               : ""
           }
-          InputProps={{
-            ...params.InputProps,
-            value: showAllSelected ? "All Selected" : params.InputProps.value,
-          }}
         />
       )}
-      inputValue={inputValue}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
       className="bg-white rounded"
       disabled={disabled}
