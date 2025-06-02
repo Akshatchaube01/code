@@ -23,7 +23,7 @@ const RenderAutocomplete = (
 
   const finalOptions = useMemo(() => {
     const base = key === "projectType" ? removeByName(options, "Generic Activities") : options;
-    return inputValue.trim() === "" ? [SELECT_ALL_DISPLAY_OPTION, ...base] : base;
+    return inputValue.trim() === "" ? [...base, SELECT_ALL_DISPLAY_OPTION] : base;
   }, [inputValue, options, key]);
 
   return (
@@ -44,12 +44,7 @@ const RenderAutocomplete = (
       onInputChange={(event, newInputValue) => {
         setInputValue(newInputValue);
       }}
-      onChange={(
-        event: SyntheticEvent,
-        newValue: Option[] | Option | null,
-        reason: AutocompleteChangeReason,
-        details?: AutocompleteChangeDetails<Option>
-      ) => {
+      onChange={(event, newValue: Option[] | Option | null) => {
         let valueArray: Option[] = [];
 
         if (Array.isArray(newValue)) {
@@ -103,6 +98,14 @@ const RenderAutocomplete = (
               ? "Please make a selection"
               : ""
           }
+          InputProps={{
+            ...params.InputProps,
+            value: showAllSelected ? "All Selected" : params.InputProps.value,
+          }}
+          inputProps={{
+            ...params.inputProps,
+            value: showAllSelected ? "All Selected" : params.inputProps.value,
+          }}
         />
       )}
       className="bg-white rounded"
