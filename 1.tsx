@@ -16,9 +16,14 @@ const RenderAutocomplete = (
   const isAllSelected = selected.length === filteredBaseOptions.length;
   const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
 
+  const SELECT_ALL_DISPLAY_OPTION = {
+    id: "__select_all__",
+    name: "All Selected"
+  };
+
   const finalOptions = useMemo(() => {
     const base = key === "projectType" ? removeByName(options, "Generic Activities") : options;
-    return inputValue.trim() === "" ? [SELECT_ALL_OPTION, ...base] : base;
+    return inputValue.trim() === "" ? [SELECT_ALL_DISPLAY_OPTION, ...base] : base;
   }, [inputValue, options, key]);
 
   return (
@@ -35,7 +40,7 @@ const RenderAutocomplete = (
           ? [...filteredBaseOptions]
           : selected
       }
-      inputValue={showAllSelected ? "All Selected" : inputValue}
+      inputValue={inputValue}
       onInputChange={(event, newInputValue) => {
         setInputValue(newInputValue);
       }}
@@ -53,7 +58,7 @@ const RenderAutocomplete = (
           valueArray = [newValue];
         }
 
-        const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_OPTION.id);
+        const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_DISPLAY_OPTION.id);
         let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
@@ -65,7 +70,7 @@ const RenderAutocomplete = (
         } else {
           finalSelection = isSelectAll && isAllSelected
             ? filteredBaseOptions
-            : valueArray.filter(o => o.id !== SELECT_ALL_OPTION.id);
+            : valueArray.filter(o => o.id !== SELECT_ALL_DISPLAY_OPTION.id);
         }
 
         setFilters(prev => {
@@ -85,7 +90,7 @@ const RenderAutocomplete = (
       getOptionLabel={(option) => {
         if (typeof option === "string") return option;
         if (option && typeof option === "object" && "name" in option) return option.name;
-        return "Select All";
+        return "";
       }}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
       renderInput={(params) => (
