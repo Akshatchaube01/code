@@ -7,14 +7,14 @@ const RenderAutocomplete = (
 ) => {
   const [inputValue, setInputValue] = useState("");
 
-  const isAllSelected = selected.length === options.length;
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
-  const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
-
   const filteredBaseOptions =
     key === "projectType" ? removeByName(options, "Generic Activities") : options;
+  const isAllSelected = selected.length === filteredBaseOptions.length;
+  const showAllSelected = isSingleSelectOnly && isAllSelected && !inputValue;
 
+  // Only show SELECT_ALL_OPTION when not typing
   const finalOptions =
     inputValue.trim() === ""
       ? [SELECT_ALL_OPTION, ...filteredBaseOptions]
@@ -68,9 +68,9 @@ const RenderAutocomplete = (
         }
 
         setFilters(prev => {
-          if (key === 'selectedTeam') {
+          if (key === "selectedTeam") {
             const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
-              acc[k as keyof typeof filters] = k === 'selectedTeam' ? finalSelection : [];
+              acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
               return acc;
             }, {} as typeof filters);
             return resetFilters;
@@ -79,7 +79,7 @@ const RenderAutocomplete = (
           }
         });
 
-        // Reset inputValue after selection
+        // Reset input after selection
         setInputValue("");
       }}
       getOptionLabel={(option) => option.name || ""}
