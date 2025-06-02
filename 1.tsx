@@ -9,16 +9,17 @@ const RenderAutocomplete = (
 
   const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
   const isSingleSelectOnly = singleSelectFields.includes(key);
+
   const filteredBaseOptions =
     key === "projectType" ? removeByName(options, "Generic Activities") : options;
-  const isAllSelected = selected.length === filteredBaseOptions.length;
-  const showAllSelected = isSingleSelectOnly && isAllSelected && !inputValue;
 
-  // Only show SELECT_ALL_OPTION when not typing
-  const finalOptions =
-    inputValue.trim() === ""
-      ? [SELECT_ALL_OPTION, ...filteredBaseOptions]
-      : filteredBaseOptions;
+  const isAllSelected = selected.length === filteredBaseOptions.length;
+  const showAllSelected = isAllSelected && isSingleSelectOnly && !inputValue;
+
+  const finalOptions = useMemo(() => {
+    const base = key === "projectType" ? removeByName(options, "Generic Activities") : options;
+    return inputValue.trim() === "" ? [SELECT_ALL_OPTION, ...base] : base;
+  }, [inputValue, options, key]);
 
   return (
     <Autocomplete
@@ -79,10 +80,13 @@ const RenderAutocomplete = (
           }
         });
 
-        // Reset input after selection
         setInputValue("");
       }}
-      getOptionLabel={(option) => option.name || ""}
+      getOptionLabel={(option) => {
+        if (typeof option === "string") return option;
+        if (option && typeof option === "object" && "name" in option) return option.name;
+        return "Select All";
+      }}
       isOptionEqualToValue={(opt, val) => opt.id === val.id}
       renderInput={(params) => (
         <TextField
