@@ -5,7 +5,7 @@ const RenderAutocomplete = (
   key: keyof typeof filters,
   disabled?: boolean
 ) => {
-  const [inputValue, setInputValue] = React.useState("");
+  const [inputValue, setInputValue] = useState("");
 
   const isAllSelected = selected.length === options.length || selected.length === 8;
 
@@ -14,19 +14,23 @@ const RenderAutocomplete = (
 
   const showAllSelected = isSingleSelectOnly && isAllSelected;
 
-  const SELECT_ALL_OPTION = { id: "__select_all__", name: "SELECT ALL" };
-
-  // Filter options based on inputValue but always include SELECT_ALL_OPTION on top
-  const filteredOptions = options.filter(opt =>
-    opt.name.toLowerCase().includes(inputValue.toLowerCase())
-  );
-  const finalOptions = [SELECT_ALL_OPTION, ...filteredOptions];
+  const SELECT_ALL_OPTION = {
+    id: "__select_all__",
+    name: "SELECT ALL"
+  };
 
   return (
     <Autocomplete
       multiple={!isSingleSelectOnly}
       disableCloseOnSelect
-      options={finalOptions}
+      inputValue={inputValue}
+      onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
+      options={[
+        SELECT_ALL_OPTION,
+        ...options.filter(o =>
+          o.name.toLowerCase().includes(inputValue.toLowerCase())
+        )
+      ]}
       value={
         isSingleSelectOnly
           ? selected.length > 0
@@ -36,25 +40,22 @@ const RenderAutocomplete = (
           ? [...options]
           : selected
       }
-      onInputChange={(event, newInputValue) => {
-        setInputValue(newInputValue);
-      }}
       onChange={(
-        event,
-        newValue,
-        reason,
-        details
+        event: SyntheticEvent,
+        newValue: Option[] | Option | null,
+        reason: AutocompleteChangeReason,
+        details?: AutocompleteChangeDetails<Option>
       ) => {
-        let valueArray = [];
+        let valueArray: Option[] = [];
+
         if (Array.isArray(newValue)) {
           valueArray = newValue;
         } else if (newValue) {
           valueArray = [newValue];
         }
 
-        const isSelectAll = valueArray.some(opt => opt.id === SELECT_ALL_OPTION.id);
-
-        let finalSelection = [];
+        const isSelectAll = valueArray.some((opt) => opt.id === SELECT_ALL_OPTION.id);
+        let finalSelection: Option[] = [];
 
         if (isSingleSelectOnly) {
           if (isSelectAll) {
@@ -65,22 +66,21 @@ const RenderAutocomplete = (
         } else {
           finalSelection = isSelectAll && isAllSelected
             ? options
-            : valueArray.filter(o => o.id !== SELECT_ALL_OPTION.id);
+            : valueArray.filter((o) => o.id !== SELECT_ALL_OPTION.id);
         }
 
-        setFilters(prev => {
+        setFilters((prev) => {
           if (key === "selectedTeam") {
-            const resetFilters = Object.keys(prev).reduce((acc, k) => {
-              acc[k] = k === "selectedTeam" ? finalSelection : [];
+            const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
+              acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
               return acc;
-            }, {});
+            }, {} as typeof filters);
+
             return resetFilters;
           } else {
             return { ...prev, [key]: finalSelection };
           }
         });
-
-        setInputValue("");
       }}
       getOptionLabel={(option) => {
         if (typeof option === "string") return option;
@@ -93,10 +93,14 @@ const RenderAutocomplete = (
           label={label}
           value={undefined}
           error={selected.length === 0 && !disabled && isAllSelected}
-          helperText={selected.length === 0 && !disabled && isAllSelected ? "Please make a selection" : ""}
+          helperText={
+            selected.length === 0 && !disabled && isAllSelected
+              ? "Please make a selection"
+              : ""
+          }
           InputProps={{
             ...params.InputProps,
-            value: showAllSelected ? "All Selected" : params.inputProps.value,
+            value: showAllSelected ? "All Selected" : params.InputProps.value,
           }}
         />
       )}
