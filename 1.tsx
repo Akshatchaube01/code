@@ -1,116 +1,31 @@
-const RenderAutocomplete = (
-  label: string,
-  options: Option[],
-  selected: Option[],
-  key: keyof typeof filters,
-  disabled?: boolean
-) => {
-  const isAllSelected =
-    selected.length === options.length ||
-    selected.length === 8 ||
-    (key === "selectedTeam" && filters.selectedTeam.length === 0);
+import pandas as pd
+import secrets
 
-  const singleSelectFields = ["region", "projectLabel", "portfolio", "projectType", "projectTypeL2"];
-  const isSingleSelectOnly = singleSelectFields.includes(key);
+# Corrected file path
+input_file = r'C:\Users\45425045\Downloads\mvp1_latest1.csv'
+output_file = r'C:\Users\45425045\Downloads\masked_output.csv'
 
-  const showAllSelected = !isSingleSelectOnly && isAllSelected;
+# Read the CSV
+df = pd.read_csv(input_file)
 
-  return (
-    <Autocomplete
-      multiple={!isSingleSelectOnly}
-      disableCloseOnSelect
-      options={[
-        SELECT_ALL_OPTION,
-        ...(key === "projectType" ? removeByName(options, "Generic Activities") : options),
-      ]}
-      value={
-        isSingleSelectOnly
-          ? selected.length > 0
-            ? selected[0]
-            : null
-          : isAllSelected
-          ? [SELECT_ALL_OPTION]
-          : selected
-      }
-      onChange={(
-        event: SyntheticEvent,
-        newValue: Option[] | Option | null,
-        reason: AutocompleteChangeReason,
-        details?: AutocompleteChangeDetails<Option>
-      ) => {
-        let valueArray: Option[] = [];
+# Remove the 'KEY' column if it exists
+if 'KEY' in df.columns:
+    df = df.drop(columns=['KEY'])
 
-        if (Array.isArray(newValue)) {
-          valueArray = newValue;
-        } else if (newValue) {
-          valueArray = [newValue];
-        }
+# Define masking function
+def mask_model_name(name):
+    if pd.isna(name):
+        return name
+    rand_suffix = secrets.token_hex(4)  # 8-character hex string
+    if 'GLOBAL' in name:
+        return f'MASKED_GLOBAL_{rand_suffix}'
+    return f'MASKED_{rand_suffix}'
 
-        const isSelectAll = valueArray.some((opt) => opt.id === SELECT_ALL_OPTION.id);
+# Apply masking to MODEL_NAME
+if 'MODEL_NAME' in df.columns:
+    df['MODEL_NAME'] = df['MODEL_NAME'].apply(mask_model_name)
 
-        let finalSelection: Option[] = [];
+# Save masked output
+df.to_csv(output_file, index=False)
 
-        if (isSingleSelectOnly) {
-          if (isSelectAll) {
-            finalSelection = options;
-          } else if (valueArray.length > 0) {
-            finalSelection = [valueArray[valueArray.length - 1]];
-          }
-        } else {
-          finalSelection =
-            isSelectAll && isAllSelected
-              ? options
-              : valueArray.filter((o) => o.id !== SELECT_ALL_OPTION.id);
-        }
-
-        setFilters((prev) => {
-          if (key === "selectedTeam") {
-            const resetFilters: typeof filters = Object.keys(prev).reduce((acc, k) => {
-              acc[k as keyof typeof filters] = k === "selectedTeam" ? finalSelection : [];
-              return acc;
-            }, {} as typeof filters);
-
-            return resetFilters;
-          } else {
-            return { ...prev, [key]: finalSelection };
-          }
-        });
-      }}
-      getOptionLabel={(option) => {
-        if (typeof option === "string") return option;
-        if (option && typeof option === "object" && "name" in option) return option.name;
-        return "Selected All";
-      }}
-      filterOptions={(options, state) =>
-        options.filter(
-          (option) =>
-            option.name?.toLowerCase().includes(state.inputValue.toLowerCase()) ||
-            option.id === SELECT_ALL_OPTION.id
-        )
-      }
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
-          error={selected.length === 0 && !disabled && !isAllSelected}
-          helperText={
-            selected.length === 0 && !disabled && !isAllSelected
-              ? "Please make a selection"
-              : ""
-          }
-          InputProps={{
-            ...params.InputProps,
-            inputProps: {
-              ...params.inputProps,
-              value: showAllSelected ? "All Selected" : params.inputProps.value,
-            },
-          }}
-        />
-      )}
-      isOptionEqualToValue={(opt, val) => opt.id === val.id}
-      className="bg-white rounded"
-      disabled={disabled}
-      disablePortal={false}
-    />
-  );
-};
+print(f"Masked data saved to: {output_file}")
