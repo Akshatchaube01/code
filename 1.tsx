@@ -59,10 +59,12 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
     let displayColumn4 = row.column4;
 
     let children: any[] = [];
+
     if (isExpandable) {
       const visibleChildren = (row.details1 || []).filter(child =>
         shownCountries.includes(child.column2)
       );
+
       if (visibleChildren.length > 0) {
         displayColumn3 = Array(row.column3.length).fill(0);
         displayColumn4 = 0;
@@ -73,8 +75,6 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
           displayColumn4 += child.column4;
           children.push(...renderRow(child, level + 1, `${rowKey}-child-${i}`));
         });
-      } else {
-        return [];
       }
     } else if (!shownCountries.includes(row.column2)) {
       return [];
@@ -88,7 +88,7 @@ const ExpandableUtilizationTable: React.FC<TableProps> = ({ columns, data }) => 
         className: 'px-4 py-2 font-medium',
         style: { cursor: isExpandable ? 'pointer' : 'default' },
         onClick: isExpandable ? () => toggleRow(rowKey) : undefined
-      }, level > 0 ? indent + row.columni : row.columni),
+      }, (level > 0 ? indent : '') + row.columni),
       React.createElement('td', { key: 'col2', className: 'px-4 py-2' }, row.column2),
       ...displayColumn3.map((val, idx) =>
         React.createElement('td', { key: `col3-${idx}`, className: 'px-4 py-2' }, val)
